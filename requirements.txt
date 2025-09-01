@@ -1,0 +1,12 @@
+# Web framework
+Flask==3.0.3
+
+# HTTP client
+requests==2.32.3
+
+# HTML parsing for link previews
+beautifulsoup4==4.12.3
+
+# (Optional) Production WSGI servers
+gunicorn==21.2.0 ; platform_system != "Windows"
+waitress==2.1.2  ; platform_system == "Windows"
