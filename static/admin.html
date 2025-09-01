@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Portfolio</title>
+  <link rel="stylesheet" href="/static/styles.css"/>
+  <style>
+    /* Admin-only styles */
+    body{ padding: 16px; }
+    .admin-wrap{ max-width: 1100px; margin: 0 auto; display: grid; gap: 24px; }
+    .panel{ background: var(--panel); border:1px solid #1b2430; border-radius: 14px; }
+    .panel > .content{ padding: 14px; }
+    .row{ display: grid; grid-template-columns: 160px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
+    input[type="text"], textarea, select{
+      width: 100%; background: #0e1420; border:1px solid #1b2430; border-radius: 10px; color: var(--text); padding: 8px 10px;
+    }
+    textarea{ min-height: 90px; }
+    .btn{ background: var(--chip); border:1px solid #2a3646; color: var(--text); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+    table{ width: 100%; border-collapse: collapse; }
+    th, td{ border-bottom: 1px solid #1b2430; padding: 8px; text-align: left; vertical-align: top; }
+    .type-pill{ font-size:12px; padding:2px 8px; border-radius:999px; background:#0f1722; border:1px solid #1b2430; }
+    .flex{ display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+    .muted{ color: var(--muted); }
+
+    /* Collapsible panels (Auth + Site Profile) */
+    details.collapsible > summary{
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid #1b2430;
+      user-select: none;
+    }
+    details.collapsible > summary::before{
+      content: "▸";
+      display: inline-block;
+      transform: translateY(-1px);
+      opacity: .8;
+    }
+    details.collapsible[open] > summary::before{
+      content: "▾";
+    }
+    details.collapsible h2{
+      margin: 0; font-size: 18px; font-weight: 700;
+    }
+
+    /* Tag suggestions */
+    .tag-suggest{
+      display: none;
+      margin-top: 6px;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tag-suggest.visible{ display: flex; }
+    .sugg-chip{
+      background: #102031;
+      border: 1px solid #1b2a3c;
+      color: #cfe2ff;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .sugg-chip:hover{ border-color: #2a3e56; }
+  </style>
+</head>
+<body>
+  <div class="admin-wrap">
+    <h1>Admin</h1>
+
+    <!-- Collapsed by default -->
+    <details class="panel collapsible" id="auth-panel">
+      <summary><h2>Auth</h2> <span class="muted">— rarely changed</span></summary>
+      <div class="content">
+        <div class="row">
+          <label for="secret">Admin Secret</label>
+          <input id="secret" type="text" placeholder="Paste ADMIN_SECRET (kept in this browser only)"/>
+        </div>
+        <button class="btn" id="save-secret">Save</button>
+        <span class="muted">Stored in this browser’s localStorage and sent as <code>X-Admin-Secret</code>.</span>
+      </div>
+    </details>
+
+    <!-- Collapsed by default -->
+    <details class="panel collapsible" id="site-panel">
+      <summary><h2>Site Profile</h2> <span class="muted">— title, description, avatar</span></summary>
+      <div class="content">
+        <div class="row"><label>Title</label><input id="site-title" type="text"/></div>
+        <div class="row"><label>Description</label><textarea id="site-desc"></textarea></div>
+        <div class="row">
+          <label>Avatar URL</label>
+          <div class="flex">
+            <input id="site-avatar" type="text" placeholder="/static/me.jpg or https://…"/>
+            <input id="avatar-file" type="file" accept="image/*"/>
+            <button class="btn" id="upload-avatar">Upload & use</button>
+          </div>
+        </div>
+        <button class="btn" id="save-site">Save Profile</button>
+      </div>
+    </details>
+
+    <div class="panel">
+      <div class="content">
+        <h2>New Post</h2>
+        <div class="row">
+          <label>Type</label>
+          <select id="p-type">
+            <option value="photo">Photo</option>
+            <option value="video">Video (YouTube link)</option>
+            <option value="text">Text</option>
+            <option value="link">Link</option>
+          </select>
+        </div>
+        <div class="row"><label>Title</label><input id="p-title" type="text"/></div>
+        <div class="row"><label>Text</label><textarea id="p-text" placeholder="Only for text posts (optional caption for photos)"></textarea></div>
+        <div class="row">
+          <label>URL</label>
+          <div class="flex">
+            <input id="p-url" type="text" placeholder="Image URL / YouTube URL / Link URL"/>
+            <input id="p-file" type="file" accept="image/*"/>
+            <button class="btn" id="upload-photo">Upload photo</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>Tags</label>
+          <div>
+            <input id="p-tags" type="text" placeholder="comma,separated,tags"/>
+            <div class="tag-suggest" id="p-tags-suggest"></div>
+          </div>
+        </div>
+        <button class="btn" id="create-post">Create Post</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="content">
+        <h2>All Posts</h2>
+        <table id="posts-table">
+          <thead><tr><th>Type</th><th>Title/Text</th><th>URL</th><th>Tags</th><th>Date</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/admin.js" defer></script>
+</body>
+</html>

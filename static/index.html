@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shawn — Portfolio</title>
+  <meta name="description" content="Shawn's personal page of photos, notes, videos, and links."/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body>
+  <header class="site-header container">
+    <div class="intro">
+      <img class="avatar" src="/static/me.jpg" alt="Shawn">
+      <div>
+        <h1>Shawn</h1>
+        <p class="muted">Senior Technical Product Specialist. Sharing photos, notes, videos, and interesting links.</p>
+        <div id="tagbar-wrap" class="tagbar-wrap collapsed">
+  <div id="tag-bar" class="tags"></div>
+  <button id="tag-toggle" class="chip chip-ghost" aria-expanded="false" type="button">More</button>
+</div>
+      </div>
+    </div>
+
+<div class="toolbar">
+  <input id="search" type="search" placeholder="Search posts… (title, text, tags)" />
+  <div class="chips">
+    <button class="chip" data-type="all">All</button>
+    <button class="chip" data-type="photo">Photos</button>
+    <button class="chip" data-type="video">Videos</button>
+    <button class="chip" data-type="text">Text</button>
+    <button class="chip" data-type="link">Links</button>
+  </div>
+
+  <!-- NEW: Date filter -->
+  <div class="date-filter">
+    <label>From <input id="date-from" type="date"></label>
+    <span>–</span>
+    <label>To <input id="date-to" type="date"></label>
+    <button id="date-clear" class="chip chip-ghost" type="button">Clear</button>
+  </div>
+</div>
+  </header>
+
+  <main class="container">
+    <div id="grid" class="grid"></div>
+    <template id="card-tpl">
+      <article class="card">
+        <div class="thumb" data-role="thumb"></div>
+        <div class="body">
+          <div class="title-row">
+            <h2 class="title" data-role="title"></h2>
+            <span class="date muted" data-role="date"></span>
+          </div>
+          <p class="desc" data-role="desc"></p>
+          <div class="tags" data-role="tags"></div>
+        </div>
+      </article>
+    </template>
+  </main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__content">
+      <button class="modal__close" aria-label="Close" data-close>✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <footer class="container footer">
+    <span class="muted">© <span id="year"></span> Shawn</span>
+  </footer>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

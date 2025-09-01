@@ -1,0 +1,64 @@
+{
+  "posts": [
+    {
+      "type": "text",
+      "title": "Access admin panel with http://localhost:5173/admin",
+      "text": "You can configure and make posts from the admin page - this will be your base URL (if running locally, this is localhost:5173) and /admin. Expand the Auth section, and set your password before attempting to make changes.\n\nSet your password in terminal (windows)\n$env:ADMIN_SECRET='super-long-random-string'\n\nor bash (linux)\nexport ADMIN_SECRET='super-long-random-string'",
+      "tags": [
+        "info",
+        "example",
+        "configure",
+        "technical"
+      ],
+      "id": "p-1756743102430",
+      "date": "2025-09-01"
+    },
+    {
+      "type": "video",
+      "title": "Meow meow meow",
+      "url": "https://www.youtube.com/watch?v=2yJgwwDcgV8",
+      "tags": [
+        "example",
+        "video",
+        "cat"
+      ],
+      "id": "p-1756742744880",
+      "date": "2025-09-01"
+    },
+    {
+      "type": "link",
+      "title": "Find me on insta!",
+      "text": "(I dont know you, find someone else)",
+      "url": "https://www.instagram.com/",
+      "tags": [
+        "example",
+        "link"
+      ],
+      "id": "p-1756742684867",
+      "date": "2025-09-01"
+    },
+    {
+      "type": "photo",
+      "title": "Check out this sick meme bro",
+      "url": "/static/uploads/Screenshot_2025-07-04_140659.png",
+      "tags": [
+        "meme",
+        "funny",
+        "example"
+      ],
+      "id": "p-1756742616022",
+      "date": "2025-09-01"
+    },
+    {
+      "type": "text",
+      "title": "This is an example text post",
+      "text": "You can use this for anything really, status updates, blog style ramblings, quick info dumps, etc.",
+      "tags": [
+        "info",
+        "example"
+      ],
+      "id": "p-1756742499168",
+      "date": "2025-09-01"
+    }
+  ]
+}
