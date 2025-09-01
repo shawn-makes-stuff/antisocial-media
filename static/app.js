@@ -30,9 +30,9 @@ const dateToInput = $("#date-to");
 const dateClearBtn = $("#date-clear");
 
 // intro elements (filled from /api/site)
-const introTitle = document.querySelector("header .intro h1");
-const introDesc = document.querySelector("header .intro .muted");
-const introAvatar = document.querySelector("header .intro .avatar");
+const introTitle = document.querySelector(".profile-section .intro h1");
+const introDesc = document.querySelector(".profile-section .intro .muted");
+const introAvatar = document.querySelector(".profile-section .intro .avatar");
 
 year.textContent = new Date().getFullYear();
 
@@ -149,6 +149,12 @@ function renderTagBar(allTags) {
     };
     tagBar.appendChild(btn);
   });
+  const chipH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--chip-h')) || 34;
+  const needToggle = tagBar.scrollHeight > chipH;
+  if (tagToggle) {
+    tagToggle.style.display = needToggle ? "" : "none";
+  }
+  state.tagsExpanded = needToggle ? state.tagsExpanded : true;
   applyTagCollapse();
 }
 
