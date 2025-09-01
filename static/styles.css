@@ -228,6 +228,58 @@ body{
   word-wrap: break-word;
 }
 
+/* Markdown content (modal) */
+.md {
+  color: #e7eefb;
+  line-height: 1.65;
+}
+.md p { margin: 0.5em 0; }
+.md a { color: #9ecbff; text-decoration: underline; }
+.md a:hover { text-decoration: none; }
+
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+  margin: 0.6em 0 0.4em;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.md h1 { font-size: 1.6rem; }
+.md h2 { font-size: 1.35rem; }
+.md h3 { font-size: 1.15rem; }
+
+.md ul, .md ol { margin: 0.5em 0 0.5em 1.4em; }
+.md li { margin: 0.25em 0; }
+
+.md code {
+  background: #0e1623;
+  border: 1px solid #1b2430;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
+}
+.md pre {
+  background: #0e1623;
+  border: 1px solid #1b2430;
+  padding: 10px 12px;
+  border-radius: 10px;
+  overflow: auto;
+}
+.md pre code { background: transparent; border: 0; padding: 0; }
+
+.md blockquote {
+  border-left: 3px solid #2a3a55;
+  padding-left: 10px;
+  margin: 0.6em 0;
+  color: #c7d3e6;
+}
+
+.md hr {
+  border: 0;
+  height: 1px;
+  background: #1b2430;
+  margin: 1rem 0;
+}
+
 /* Modal */
 .modal.hidden{ display: none; }
 

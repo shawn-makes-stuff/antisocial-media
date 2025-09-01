@@ -34,6 +34,24 @@ dateClearBtn.addEventListener("click", ()=>{
   render();
 });
 
+function renderMarkdown(md) {
+  if (!md) return "";
+  try {
+    if (window.marked) {
+      marked.setOptions({ gfm: true, breaks: true }); // soft line-breaks → <br>
+      const raw = marked.parse(md);
+      const clean = window.DOMPurify
+        ? DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } })
+        : raw;
+      return clean;
+    }
+  } catch (_) {}
+  // Fallback: escape + simple line breaks
+  return String(md)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+}
+
 function applyTagCollapse(){
   if(!tagWrap) return;
   tagWrap.classList.toggle("collapsed", !state.tagsExpanded);
@@ -296,43 +314,63 @@ function openPost(post){
   modal.classList.remove("hidden");
   modalBody.innerHTML = "";
 
-  if(post.type === "photo"){
+  if (post.type === "photo") {
     const img = new Image();
     img.src = post.url;
     img.alt = post.title || "photo";
     img.className = "modal__media";
     modalBody.appendChild(img);
-  } else if(post.type === "video"){
-  const id = isYouTube(post.url);
-  if(id){
-    const iframe = document.createElement("iframe");
-    iframe.className = "modal__media modal__iframe";
-    // Enable the player JS API so we can pause via postMessage
-    const origin = encodeURIComponent(location.origin);
-    iframe.src = `https://www.youtube.com/embed/${id}?enablejsapi=1&rel=0&origin=${origin}`;
-    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-    iframe.allowFullscreen = true;
-    modalBody.appendChild(iframe);
-  }
-  } else if(post.type === "link"){
+
+    if (post.text) {
+      const cap = document.createElement("div");
+      cap.className = "modal__desc md";
+      cap.innerHTML = renderMarkdown(post.text);
+      modalBody.appendChild(cap);
+    }
+
+  } else if (post.type === "video") {
+    const id = isYouTube(post.url);
+    if (id){
+      const iframe = document.createElement("iframe");
+      iframe.className = "modal__media modal__iframe";
+      const origin = encodeURIComponent(location.origin);
+      iframe.src = `https://www.youtube.com/embed/${id}?enablejsapi=1&rel=0&origin=${origin}`;
+      iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      iframe.allowFullscreen = true;
+      modalBody.appendChild(iframe);
+    }
+
+  } else if (post.type === "link") {
     const a = document.createElement("a");
     a.href = post.url;
     a.target = "_blank";
     a.rel = "noopener";
     a.textContent = post.url;
     modalBody.appendChild(a);
-  } else if(post.type === "text"){
-    const h = document.createElement("h3");
-    h.className = "modal__title";
-    h.textContent = post.title || "";
-    if(!post.title) h.style.display = "none";
-    const p = document.createElement("p");
-    p.className = "modal__desc";
-    p.textContent = post.text || "";
-    modalBody.appendChild(h);
-    modalBody.appendChild(p);
+
+    if (post.text) {
+      const note = document.createElement("div");
+      note.className = "modal__desc md";
+      note.innerHTML = renderMarkdown(post.text);
+      modalBody.appendChild(note);
+    }
+
+  } else if (post.type === "text") {
+    // Optional title
+    if (post.title) {
+      const h = document.createElement("h3");
+      h.className = "modal__title";
+      h.textContent = post.title;
+      modalBody.appendChild(h);
+    }
+    // Single Markdown-rendered body (no duplicate plain text)
+    const div = document.createElement("div");
+    div.className = "modal__desc md";
+    div.innerHTML = renderMarkdown(post.text || "");
+    modalBody.appendChild(div);
   }
 
+  // Meta (tags + date)
   const meta = document.createElement("div");
   meta.innerHTML = `
     <div class="tags">${(post.tags||[]).map(t=>`<span class="tag">#${t}</span>`).join(" ")}</div>
@@ -340,6 +378,7 @@ function openPost(post){
   `;
   modalBody.appendChild(meta);
 }
+
 
 function closeModal(){
   // Try to pause YouTube players via postMessage, then clean up.
