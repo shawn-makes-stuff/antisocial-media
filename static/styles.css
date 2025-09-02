@@ -188,7 +188,14 @@ body {
 /* Card body */
 .card .body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .title-row { display: flex; align-items: baseline; gap: 10px; justify-content: space-between; }
-.title { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.2; }
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
 .date { font-size: 12px; }
 
 .desc {
@@ -236,6 +243,8 @@ body {
 .md {
   color: #e7eefb;
   line-height: 1.65;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .md p { margin: 0.5em 0; }
 .md a { color: #9ecbff; text-decoration: underline; }
@@ -316,7 +325,20 @@ body {
   padding: 4px 8px; cursor: pointer;
 }
 
-#modal-body { padding: 14px; display: grid; gap: 12px; }
+.modal__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+#modal-body {
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+}
 
 /* Media scales to viewport but doesn't force empty space */
 .modal__media {
