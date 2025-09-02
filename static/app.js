@@ -9,7 +9,8 @@ const state = {
   type: "all",
   tag: null,
   dateFrom: null,
-  dateTo: null
+  dateTo: null,
+  user: null,
 };
 
 // ---------- cached DOM references ----------
@@ -25,16 +26,15 @@ const year = $("#year");
 const authBar = $("#auth-bar");
 const newPostBtn = $("#btn-new-post");
 
+const siteLogo = $("#site-logo");
+const siteTitleEl = $("#site-title");
+const footerTitle = $("#footer-title");
+
 let currentUser = null;
 
 const dateFromInput = $("#date-from");
 const dateToInput = $("#date-to");
 const dateClearBtn = $("#date-clear");
-
-// intro elements (filled from /api/site)
-const introTitle = document.querySelector(".profile-section .intro h1");
-const introDesc = document.querySelector(".profile-section .intro .muted");
-const introAvatar = document.querySelector(".profile-section .intro .avatar");
 
 year.textContent = new Date().getFullYear();
 
@@ -160,14 +160,29 @@ function renderCard(post) {
   const date = node.querySelector('[data-role="date"]');
   const tags = node.querySelector('[data-role="tags"]');
   const authorEl = node.querySelector('[data-role="author"]');
+  const avatarEl = node.querySelector('[data-role="avatar"]');
   const commentEl = node.querySelector('[data-role="comment-count"]');
+  const likeEl = node.querySelector('[data-role="like-count"]');
 
   date.textContent = fmtDate(post.date);
   title.textContent = post.title || "";
   if (!post.title) title.style.display = "none";
 
-  authorEl.textContent = post.user ? `by ${post.user.name}` : "";
-  commentEl.textContent = `${post.comment_count || 0} comments`;
+  if (post.user) {
+    authorEl.textContent = post.user.name;
+    if (post.user.avatar) {
+      avatarEl.src = post.user.avatar;
+      avatarEl.style.display = "block";
+    } else {
+      avatarEl.style.display = "none";
+    }
+  } else {
+    authorEl.textContent = "";
+    avatarEl.style.display = "none";
+  }
+
+  likeEl.textContent = `❤ ${post.like_count || 0}`;
+  commentEl.textContent = `💬 ${post.comment_count || 0}`;
 
   // Description (truncated by CSS)
   desc.textContent = post.text || post.description || "";
@@ -304,7 +319,9 @@ function matchesFilters(p) {
     }
   }
 
-  return inQuery && typeOk && tagOk && dateOk;
+  const userOk = !state.user || p.user_id === state.user;
+
+  return inQuery && typeOk && tagOk && dateOk && userOk;
 }
 
 // Render filtered posts
@@ -331,12 +348,22 @@ function renderAuthBar() {
   if (currentUser) {
     const avatar = currentUser.avatar || "/static/discord.svg";
     authBar.innerHTML = `
-      <span class="user-info">
-        <img src="${avatar}" alt="" />
-        <span>${currentUser.name}</span>
-        <a href="/logout">Logout</a>
-      </span>`;
-    newPostBtn.style.display = "block";
+      <div class="user-menu">
+        <button id="user-btn" class="user-btn"><img src="${avatar}" alt=""/></button>
+        <div id="user-menu-dropdown" class="dropdown hidden">
+          <a href="/?user=${currentUser.id}">Profile</a>
+          ${currentUser.is_admin ? '<a href="/admin">Admin</a>' : ''}
+          <a href="/logout">Logout</a>
+        </div>
+      </div>`;
+    newPostBtn.style.display = "inline-block";
+    const btn = $("#user-btn");
+    const menu = $("#user-menu-dropdown");
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+    });
+    document.addEventListener("click", () => menu.classList.add("hidden"));
   } else {
     authBar.innerHTML = `<a class="login-btn" href="/login"><img src="/static/discord.svg" alt="">Login with Discord</a>`;
     newPostBtn.style.display = "none";
@@ -345,19 +372,73 @@ function renderAuthBar() {
 
 function openNewPost() {
   modal.classList.remove("hidden");
-  modalContent.style.width = "600px";
+  modalContent.classList.add("new-post-modal");
+  modalContent.style.width = "";
   modalBody.innerHTML = $("#new-post-tpl").innerHTML;
 
   const pTitle = $("#p-title");
+  const titleCount = $("#title-count");
   const pText = $("#p-text");
   const pTags = $("#p-tags");
   const pTagsSuggest = $("#p-tags-suggest");
+  const toggleTags = $("#toggle-tags");
+  const tagsWrap = $("#tags-wrap");
+  const toolbar = modalBody.querySelector(".toolbar");
   const pImage = $("#p-image");
   const pPreviewWrap = $("#p-preview-wrap");
   const pPreviewRow = $("#p-preview-row");
   const createBtn = $("#create-post");
+  const mdSwitch = $("#md-switch");
 
   const allTags = Array.from(new Set(state.posts.flatMap(p => p.tags || []))).sort((a, b) => a.localeCompare(b));
+
+  titleCount.textContent = `${pTitle.value.length}/300`;
+  pTitle.addEventListener("input", () => {
+    titleCount.textContent = `${pTitle.value.length}/300`;
+  });
+
+  toggleTags.addEventListener("click", () => {
+    tagsWrap.classList.toggle("hidden");
+    if (!tagsWrap.classList.contains("hidden")) pTags.focus();
+  });
+
+  // markdown toolbar helpers
+  function insertAround(el, pre, suf) {
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const before = el.value.slice(0, start);
+    const sel = el.value.slice(start, end);
+    const after = el.value.slice(end);
+    el.value = before + pre + sel + suf + after;
+    el.selectionStart = start + pre.length;
+    el.selectionEnd = end + pre.length;
+  }
+  function prefixLines(el, pre) {
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const before = el.value.slice(0, start);
+    const sel = el.value.slice(start, end);
+    const after = el.value.slice(end);
+    const replaced = sel.split("\n").map(l => pre + l).join("\n");
+    el.value = before + replaced + after;
+    el.selectionStart = start;
+    el.selectionEnd = start + replaced.length;
+  }
+  toolbar.querySelectorAll("button[data-wrap],button[data-prefix]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.wrap) {
+        insertAround(pText, btn.dataset.wrap, btn.dataset.suffix || btn.dataset.wrap);
+      } else if (btn.dataset.prefix) {
+        prefixLines(pText, btn.dataset.prefix);
+      }
+      pText.focus();
+    });
+  });
+
+  mdSwitch.addEventListener("click", () => {
+    toolbar.classList.toggle("hidden");
+    mdSwitch.textContent = toolbar.classList.contains("hidden") ? "Show Toolbar" : "Switch to Markdown Editor";
+  });
 
   function splitTags(val) {
     return val.split(',').map(t => t.trim()).filter(Boolean)
@@ -479,13 +560,9 @@ function openNewPost() {
       await r.json();
       attachedImages.forEach(ai => URL.revokeObjectURL(ai.url));
       await refreshPosts();
-      // reset form for another post
-      pTitle.value = "";
-      pText.value = "";
-      pTags.value = "";
-      pTagsSuggest.innerHTML = "";
-      pTagsSuggest.classList.remove("visible");
-      pPreviewWrap.innerHTML = "";
+      modal.classList.add("hidden");
+      modalContent.classList.remove("new-post-modal");
+      modalBody.innerHTML = "";
       attachedImages = [];
       pPreviewRow.style.display = "none";
     } catch (e) {
@@ -511,7 +588,16 @@ function updateTypeChips() {
 function openPost(post) {
   modal.classList.remove("hidden");
   modalContent.style.width = "";
+  modalContent.classList.remove("new-post-modal");
   modalBody.innerHTML = "";
+
+  const header = document.createElement("div");
+  header.className = "post-header";
+  header.innerHTML = `
+    <span class="post-author">${post.user ? post.user.name : 'Anon'}</span>
+    <span class="post-date muted">${fmtDate(post.date)}</span>
+  `;
+  modalBody.appendChild(header);
 
   if (post.type === "photo") {
     const urls = (post.urls && post.urls.length) ? post.urls : [post.url];
@@ -567,13 +653,34 @@ function openPost(post) {
     modalBody.appendChild(div);
   }
 
-  // Meta (tags + date)
   const meta = document.createElement("div");
   meta.innerHTML = `
     <div class="tags">${(post.tags || []).map(t => `<span class="tag">#${t}</span>`).join(" ")}</div>
-    <div class="muted">${fmtDate(post.date)}</div>
   `;
   modalBody.appendChild(meta);
+
+  const pActions = document.createElement("div");
+  pActions.className = "post-actions";
+  const likeBtn = document.createElement("button");
+  likeBtn.type = "button";
+  likeBtn.className = "like-btn" + (post.liked ? " liked" : "");
+  likeBtn.textContent = "❤";
+  const likeCount = document.createElement("span");
+  likeCount.className = "like-count";
+  likeCount.textContent = post.like_count || 0;
+  likeBtn.addEventListener("click", async () => {
+    try {
+      const r = await fetch(`/api/post/${post.id}/like`, { method: 'POST' });
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      likeBtn.classList.toggle('liked', data.liked);
+      likeCount.textContent = data.like_count;
+    } catch (err) {
+      alert('Failed: ' + err.message);
+    }
+  });
+  pActions.append(likeBtn, likeCount);
+  modalBody.appendChild(pActions);
 
   const commentsWrap = document.createElement("div");
   commentsWrap.className = "comments";
@@ -645,14 +752,36 @@ function openPost(post) {
       text.className = "comment-text md";
       text.innerHTML = renderMarkdown(c.text);
       body.append(meta, text);
+      const actions = document.createElement('div');
+      actions.className = 'comment-actions';
+      const like = document.createElement('button');
+      like.type = 'button';
+      like.className = 'like-btn' + (c.liked ? ' liked' : '');
+      like.textContent = '❤';
+      const count = document.createElement('span');
+      count.className = 'like-count';
+      count.textContent = c.like_count || 0;
+      like.addEventListener('click', async () => {
+        try {
+          const r = await fetch(`/api/post/${post.id}/comment/${c.id}/like`, { method: 'POST' });
+          if (!r.ok) throw new Error(await r.text());
+          const data = await r.json();
+          like.classList.toggle('liked', data.liked);
+          count.textContent = data.like_count;
+        } catch (err) {
+          alert('Failed: ' + err.message);
+        }
+      });
+      actions.append(like, count);
       if (currentUser) {
         const replyBtn = document.createElement("button");
         replyBtn.type = 'button';
         replyBtn.className = 'reply-btn';
         replyBtn.textContent = 'Reply';
         replyBtn.addEventListener('click', () => moveForm(li, c.id));
-        body.appendChild(replyBtn);
+        actions.appendChild(replyBtn);
       }
+      body.appendChild(actions);
       card.append(avatar, body);
       li.appendChild(card);
       if (c.replies && c.replies.length) {
@@ -690,6 +819,7 @@ function closeModal() {
   modalBody.innerHTML = ""; // ensure playback stops
   modal.classList.add("hidden");
   modalContent.style.width = "";
+  modalContent.classList.remove("new-post-modal");
 }
 
 // ---------- event binding ----------
@@ -746,10 +876,19 @@ async function main() {
       fetchJSON("/api/posts"),
       fetchJSON("/api/me"),
     ]);
+    siteTitleEl.textContent = site.title || "";
+    footerTitle.textContent = site.title || "";
+    if (site.logo) {
+      siteLogo.src = site.logo;
+    } else {
+      siteLogo.style.display = "none";
+    }
+    document.title = site.tab_text || site.title || document.title;
+    const fav = $("#site-favicon");
+    if (fav && site.favicon) fav.href = site.favicon;
 
-    introTitle.textContent = site.title || "Shawn";
-    introDesc.textContent = site.description || "";
-    introAvatar.src = site.avatar || "/static/me.jpg";
+    const params = new URLSearchParams(location.search);
+    state.user = params.get("user");
 
     currentUser = me.user;
     renderAuthBar();

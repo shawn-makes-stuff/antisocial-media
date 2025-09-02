@@ -30,10 +30,15 @@
 
   // ====== DOM elements ======
   const siteTitle   = $('#site-title');
-  const siteDesc    = $('#site-desc');
-  const siteAvatar  = $('#site-avatar');
-  const avatarFile  = $('#avatar-file');
-  const uploadAvatarBtn = $('#upload-avatar');
+  const siteTab     = $('#site-tab');
+  const siteLogo    = $('#site-logo');
+  const siteFavicon = $('#site-favicon');
+  const logoFile    = $('#logo-file');
+  const faviconFile = $('#favicon-file');
+  const topLogo     = $('#top-logo');
+  const topTitle    = $('#top-title');
+  const authBar     = $('#auth-bar');
+  let currentUser   = null;
 
   const pTitle = $('#p-title');
   const pText  = $('#p-text');
@@ -53,6 +58,30 @@
     storage.secret = $('#secret').value.trim();
     toast('Secret saved.');
   };
+
+  function renderAuthBar(){
+    if(currentUser){
+      const avatar = currentUser.avatar || '/static/discord.svg';
+      authBar.innerHTML = `
+        <div class="user-menu">
+          <button id="user-btn" class="user-btn"><img src="${avatar}" alt=""/></button>
+          <div id="user-menu-dropdown" class="dropdown hidden">
+            <a href="/?user=${currentUser.id}">Profile</a>
+            ${currentUser.is_admin ? '<a href="/admin">Admin</a>' : ''}
+            <a href="/logout">Logout</a>
+          </div>
+        </div>`;
+      const btn = $('#user-btn');
+      const menu = $('#user-menu-dropdown');
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+      });
+      document.addEventListener('click', ()=> menu.classList.add('hidden'));
+    }else{
+      authBar.innerHTML = '<a class="login-btn" href="/login"><img src="/static/discord.svg" alt="">Login with Discord</a>';
+    }
+  }
 
   // ====== API helpers ======
   async function fetchJSON(url){
@@ -211,27 +240,27 @@
   // ====== Site/profile handlers ======
   async function handleSaveSite(){
     try{
-      await putJSON('/api/site', {
+      const body = {
         title: siteTitle.value.trim(),
-        description: siteDesc.value.trim(),
-        avatar: siteAvatar.value.trim()
-      });
-      toast('Profile saved.');
+        tab_text: siteTab.value.trim(),
+        logo: siteLogo.value.trim(),
+        favicon: siteFavicon.value.trim()
+      };
+      if(logoFile.files[0]){
+        const up = await uploadFile(logoFile.files[0]);
+        body.logo = siteLogo.value = up.url;
+      }
+      if(faviconFile.files[0]){
+        const up = await uploadFile(faviconFile.files[0]);
+        body.favicon = siteFavicon.value = up.url;
+      }
+      await putJSON('/api/site', body);
+      await loadSite();
+      toast('Site saved.');
     }catch(e){ toast('Save failed: ' + e); }
   }
 
-  async function handleUploadAvatar(){
-    try{
-      const f = avatarFile.files[0];
-      if(!f) return toast('Choose a file first.');
-      const up = await uploadFile(f);
-      siteAvatar.value = up.url;
-      toast('Uploaded. Avatar URL set.');
-    }catch(e){ toast('Upload failed: ' + e); }
-  }
-
   $('#save-site').onclick = handleSaveSite;
-  uploadAvatarBtn.onclick = handleUploadAvatar;
 
   // ====== Post creation handlers ======
   let attachedImages = [];
@@ -328,9 +357,20 @@
   // ====== Loaders ======
   async function loadSite(){
     const site = await fetchJSON('/api/site');
-    siteTitle.value = site.title || '';
-    siteDesc.value  = site.description || '';
-    siteAvatar.value= site.avatar || '';
+    siteTitle.value   = site.title || '';
+    siteTab.value     = site.tab_text || '';
+    siteLogo.value    = site.logo || '';
+    siteFavicon.value = site.favicon || '';
+    topTitle.textContent = site.title || '';
+    if(site.logo){
+      topLogo.src = site.logo;
+      topLogo.style.display = '';
+    }else{
+      topLogo.style.display = 'none';
+    }
+    document.title = site.tab_text || `Admin — ${site.title || ''}`;
+    const fav = document.querySelector('link[rel="icon"]');
+    if(fav && site.favicon) fav.href = site.favicon;
   }
 
   async function loadPosts(){
@@ -373,6 +413,9 @@
   (async function init(){
     try{
       await loadSite();
+      const me = await fetchJSON('/api/me');
+      currentUser = me.user;
+      renderAuthBar();
       await loadPosts();
       await loadUsers();
     }catch(e){
