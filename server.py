@@ -9,9 +9,20 @@ from flask import (
     url_for,
 )
 from werkzeug.utils import secure_filename
-import os, json, re, requests, tempfile, time
+import os, re, requests, time
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
+
+from auth import current_user, require_admin
+from storage import (
+    load_posts,
+    save_posts,
+    load_site,
+    save_site,
+    load_users,
+    save_users,
+)
+from utils import find_comment, is_youtube
 
 app = Flask(__name__, static_url_path="/static", static_folder="static")
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads")
@@ -20,76 +31,12 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev")
 
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-POSTS_FILE = "posts/posts.json"
-SITE_FILE  = "posts/site.json"  # profile meta
-USERS_FILE = "users/users.json"
-ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "changeme")  # set real value in env!
-
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "")
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "")
-DISCORD_REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI", "http://localhost:5173/callback")
+DISCORD_REDIRECT_URI = os.environ.get(
+    "DISCORD_REDIRECT_URI", "http://localhost:5173/callback"
+)
 
-YOUTUBE_PATTERNS = [
-    r"(?:https?://)?(?:www\.)?youtube\.com/watch\?v=([A-Za-z0-9_\-]{6,})",
-    r"(?:https?://)?(?:www\.)?youtu\.be/([A-Za-z0-9_\-]{6,})"
-]
-
-def load_json(path, default):
-    if not os.path.exists(path):
-        return default
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def atomic_write(path, data_obj):
-    tmp_fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".tmp-", suffix=".json")
-    with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-        json.dump(data_obj, f, ensure_ascii=False, indent=2)
-    os.replace(tmp_path, path)
-
-def load_posts():
-    data = load_json(POSTS_FILE, {"posts": []})
-    posts = data.get("posts", [])
-    return sorted(posts, key=lambda p: p.get("date", ""), reverse=True)
-
-def save_posts(posts):
-    atomic_write(POSTS_FILE, {"posts": posts})
-
-def load_site():
-    return load_json(SITE_FILE, {
-        "title": "Antisocial",
-        "logo": None,
-        "favicon": None,
-        "tab_text": "Antisocial",
-    })
-
-def save_site(site):
-    atomic_write(SITE_FILE, site)
-
-
-def load_users():
-    data = load_json(USERS_FILE, {"users": []})
-    return data.get("users", [])
-
-
-def save_users(users):
-    atomic_write(USERS_FILE, {"users": users})
-
-
-def current_user():
-    uid = session.get("uid")
-    if not uid:
-        return None
-    for u in load_users():
-        if u.get("id") == uid:
-            return u
-    return None
-
-def require_admin(req):
-    user = current_user()
-    if user and user.get("is_admin"):
-        return True
-    secret = req.headers.get("X-Admin-Secret") or req.args.get("key")
-    return secret == ADMIN_SECRET
 
 @app.route("/")
 def index():
@@ -432,15 +379,6 @@ def api_post_comment(pid):
     posts = load_posts()
     for i, post in enumerate(posts):
         if post.get("id") == pid:
-            def find_comment(comments, cid):
-                for c in comments:
-                    if c.get("id") == cid:
-                        return c
-                    found = find_comment(c.get("replies", []), cid)
-                    if found:
-                        return found
-                return None
-
             comment = {
                 "id": f"c-{int(time.time()*1000)}",
                 "user_id": user["id"],
@@ -492,15 +430,7 @@ def api_comment_like(pid, cid):
     posts = load_posts()
     for pi, post in enumerate(posts):
         if post.get("id") == pid:
-            def find_comment(comments):
-                for c in comments:
-                    if c.get("id") == cid:
-                        return c
-                    found = find_comment(c.get("replies", []))
-                    if found:
-                        return found
-                return None
-            comment = find_comment(post.get("comments", []))
+            comment = find_comment(post.get("comments", []), cid)
             if not comment:
                 return jsonify({"error": "Not found"}), 404
             likes = comment.setdefault("likes", [])
@@ -515,15 +445,6 @@ def api_comment_like(pid, cid):
             save_posts(posts)
             return jsonify({"ok": True, "liked": liked, "like_count": len(likes)})
     return jsonify({"error": "Not found"}), 404
-
-# -------- Helpers --------
-
-def is_youtube(url):
-    for pat in YOUTUBE_PATTERNS:
-        m = re.search(pat, url)
-        if m:
-            return m.group(1)
-    return None
 
 @app.route("/api/detect", methods=["POST"])
 def api_detect():
