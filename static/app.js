@@ -20,7 +20,12 @@ const searchInput = $("#search");
 const typeChips = $$('.chip[data-type]');
 const modal = $("#modal");
 const modalBody = $("#modal-body");
+const modalContent = $(".modal__content");
 const year = $("#year");
+const authBar = $("#auth-bar");
+const newPostBtn = $("#btn-new-post");
+
+let currentUser = null;
 
 const dateFromInput = $("#date-from");
 const dateToInput = $("#date-to");
@@ -154,10 +159,15 @@ function renderCard(post) {
   const desc = node.querySelector('[data-role="desc"]');
   const date = node.querySelector('[data-role="date"]');
   const tags = node.querySelector('[data-role="tags"]');
+  const authorEl = node.querySelector('[data-role="author"]');
+  const commentEl = node.querySelector('[data-role="comment-count"]');
 
   date.textContent = fmtDate(post.date);
   title.textContent = post.title || "";
   if (!post.title) title.style.display = "none";
+
+  authorEl.textContent = post.user ? `by ${post.user.name}` : "";
+  commentEl.textContent = `${post.comment_count || 0} comments`;
 
   // Description (truncated by CSS)
   desc.textContent = post.text || post.description || "";
@@ -310,6 +320,185 @@ function render() {
   });
 }
 
+async function refreshPosts() {
+  const data = await fetchJSON("/api/posts");
+  state.posts = data.posts;
+  renderTagBar(collectTopTags(state.posts));
+  render();
+}
+
+function renderAuthBar() {
+  if (currentUser) {
+    const avatar = currentUser.avatar || "/static/discord.svg";
+    authBar.innerHTML = `
+      <span class="user-info">
+        <img src="${avatar}" alt="" />
+        <span>${currentUser.name}</span>
+        <a href="/logout">Logout</a>
+      </span>`;
+    newPostBtn.style.display = "block";
+  } else {
+    authBar.innerHTML = `<a class="login-btn" href="/login"><img src="/static/discord.svg" alt="">Login with Discord</a>`;
+    newPostBtn.style.display = "none";
+  }
+}
+
+function openNewPost() {
+  modal.classList.remove("hidden");
+  modalContent.style.width = "600px";
+  modalBody.innerHTML = $("#new-post-tpl").innerHTML;
+
+  const pTitle = $("#p-title");
+  const pText = $("#p-text");
+  const pTags = $("#p-tags");
+  const pTagsSuggest = $("#p-tags-suggest");
+  const pImage = $("#p-image");
+  const pPreviewWrap = $("#p-preview-wrap");
+  const pPreviewRow = $("#p-preview-row");
+  const createBtn = $("#create-post");
+
+  const allTags = Array.from(new Set(state.posts.flatMap(p => p.tags || []))).sort((a, b) => a.localeCompare(b));
+
+  function splitTags(val) {
+    return val.split(',').map(t => t.trim()).filter(Boolean)
+      .filter((v, i, arr) => arr.indexOf(v) === i);
+  }
+
+  function renderSuggestions() {
+    const existing = splitTags(pTags.value);
+    const currentToken = pTags.value.split(',').slice(-1)[0].trim().toLowerCase();
+    let sug = allTags.filter(t => !existing.includes(t) && (currentToken ? t.toLowerCase().startsWith(currentToken) : true));
+    sug = sug.slice(0, 12);
+    pTagsSuggest.innerHTML = "";
+    if (sug.length === 0) {
+      pTagsSuggest.classList.remove("visible");
+      return;
+    }
+    sug.forEach(tag => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "sugg-chip";
+      btn.textContent = `#${tag}`;
+      btn.addEventListener("mousedown", e => {
+        e.preventDefault();
+        const tokens = pTags.value.split(',').map(s => s.trim()).filter(Boolean);
+        if (currentToken) {
+          tokens[tokens.length - 1] = tag;
+        } else {
+          tokens.push(tag);
+        }
+        const final = tokens.filter((v, i, a) => a.indexOf(v) === i).join(", ");
+        pTags.value = final + ", ";
+        renderSuggestions();
+        pTags.focus();
+      });
+      pTagsSuggest.appendChild(btn);
+    });
+    pTagsSuggest.classList.add("visible");
+  }
+
+  pTags.addEventListener("input", renderSuggestions);
+  pTags.addEventListener("focus", renderSuggestions);
+  pTags.addEventListener("blur", () => setTimeout(() => pTagsSuggest.classList.remove("visible"), 150));
+
+  let attachedImages = [];
+
+  function addFiles(files) {
+    files.forEach(f => {
+      if (!f.type.startsWith("image/")) return;
+      const url = URL.createObjectURL(f);
+      attachedImages.push({ file: f, url });
+      const item = document.createElement("div");
+      item.className = "preview-item";
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "preview";
+      item.appendChild(img);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "✖";
+      btn.addEventListener("click", () => {
+        const idx = attachedImages.findIndex(ai => ai.file === f);
+        if (idx > -1) {
+          URL.revokeObjectURL(attachedImages[idx].url);
+          attachedImages.splice(idx, 1);
+        }
+        item.remove();
+        if (attachedImages.length === 0) {
+          pPreviewRow.style.display = "none";
+        }
+      });
+      item.appendChild(btn);
+      pPreviewWrap.appendChild(item);
+    });
+    if (attachedImages.length > 0) {
+      pPreviewRow.style.display = "";
+    }
+  }
+
+  pText.addEventListener("paste", e => {
+    const imgs = Array.from(e.clipboardData?.files || []).filter(f => f.type.startsWith("image/"));
+    if (imgs.length) {
+      addFiles(imgs);
+      pImage.value = "";
+      e.preventDefault();
+    }
+  });
+
+  pImage.addEventListener("change", () => {
+    const imgs = Array.from(pImage.files).filter(f => f.type.startsWith("image/"));
+    if (imgs.length) {
+      addFiles(imgs);
+      pImage.value = "";
+    }
+  });
+
+  async function handleCreatePost() {
+    try {
+      let r;
+      if (attachedImages.length) {
+        const fd = new FormData();
+        fd.append("title", pTitle.value.trim());
+        fd.append("text", pText.value.trim());
+        fd.append("tags", splitTags(pTags.value).join(","));
+        attachedImages.forEach(ai => fd.append("files", ai.file));
+        r = await fetch("/api/post", { method: "POST", body: fd });
+      } else {
+        const body = {
+          title: pTitle.value.trim(),
+          text: pText.value.trim(),
+          tags: splitTags(pTags.value).join(",")
+        };
+        r = await fetch("/api/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      }
+      if (!r.ok) throw new Error(await r.text());
+      await r.json();
+      attachedImages.forEach(ai => URL.revokeObjectURL(ai.url));
+      await refreshPosts();
+      // reset form for another post
+      pTitle.value = "";
+      pText.value = "";
+      pTags.value = "";
+      pTagsSuggest.innerHTML = "";
+      pTagsSuggest.classList.remove("visible");
+      pPreviewWrap.innerHTML = "";
+      attachedImages = [];
+      pPreviewRow.style.display = "none";
+    } catch (e) {
+      alert("Failed: " + e.message);
+    }
+  }
+
+  createBtn.addEventListener("click", e => {
+    e.preventDefault();
+    handleCreatePost();
+  });
+}
+
 // Update the active state of type filter chips
 function updateTypeChips() {
   typeChips.forEach(chip => {
@@ -321,6 +510,7 @@ function updateTypeChips() {
 
 function openPost(post) {
   modal.classList.remove("hidden");
+  modalContent.style.width = "";
   modalBody.innerHTML = "";
 
   if (post.type === "photo") {
@@ -384,6 +574,104 @@ function openPost(post) {
     <div class="muted">${fmtDate(post.date)}</div>
   `;
   modalBody.appendChild(meta);
+
+  const commentsWrap = document.createElement("div");
+  commentsWrap.className = "comments";
+
+  let commentParent = null;
+  const form = document.createElement("form");
+  form.className = "comment-form";
+  const ta = document.createElement("textarea");
+  ta.required = true;
+  const btn = document.createElement("button");
+  btn.textContent = "Comment";
+  form.append(ta, btn);
+
+  ta.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    try {
+      const payload = { text: ta.value };
+      if (commentParent) payload.parent = commentParent;
+      await fetch(`/api/post/${post.id}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      ta.value = "";
+      commentParent = null;
+      btn.textContent = "Comment";
+      commentsWrap.appendChild(form);
+      await refreshPosts();
+      const updated = state.posts.find(p => p.id === post.id);
+      openPost(updated);
+    } catch (err) {
+      alert('Failed to comment: ' + err.message);
+    }
+  });
+
+  function moveForm(target, parentId) {
+    commentParent = parentId;
+    btn.textContent = parentId ? "Reply" : "Comment";
+    target.appendChild(form);
+    ta.focus();
+  }
+
+  function renderComments(list) {
+    const ul = document.createElement("ul");
+    ul.className = "comments-list";
+    list.forEach(c => {
+      const li = document.createElement("li");
+      li.className = "comment-item";
+
+      const card = document.createElement("div");
+      card.className = "comment-card";
+      const avatar = document.createElement("img");
+      avatar.className = "avatar";
+      avatar.src = c.user && c.user.avatar ? c.user.avatar : "/static/discord.svg";
+      avatar.alt = '';
+      const body = document.createElement("div");
+      body.className = "comment-body";
+      const meta = document.createElement("div");
+      meta.className = "comment-meta";
+      meta.textContent = c.user ? c.user.name : 'Anon';
+      const text = document.createElement("div");
+      text.className = "comment-text md";
+      text.innerHTML = renderMarkdown(c.text);
+      body.append(meta, text);
+      if (currentUser) {
+        const replyBtn = document.createElement("button");
+        replyBtn.type = 'button';
+        replyBtn.className = 'reply-btn';
+        replyBtn.textContent = 'Reply';
+        replyBtn.addEventListener('click', () => moveForm(li, c.id));
+        body.appendChild(replyBtn);
+      }
+      card.append(avatar, body);
+      li.appendChild(card);
+      if (c.replies && c.replies.length) {
+        li.appendChild(renderComments(c.replies));
+      }
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  if (post.comments && post.comments.length) {
+    commentsWrap.appendChild(renderComments(post.comments));
+  }
+
+  if (currentUser) {
+    commentsWrap.appendChild(form);
+  }
+
+  modalBody.appendChild(commentsWrap);
 }
 
 function closeModal() {
@@ -401,6 +689,7 @@ function closeModal() {
   });
   modalBody.innerHTML = ""; // ensure playback stops
   modal.classList.add("hidden");
+  modalContent.style.width = "";
 }
 
 // ---------- event binding ----------
@@ -442,20 +731,28 @@ function bindEvents() {
   });
 
   updateTypeChips();
+
+  if (newPostBtn) {
+    newPostBtn.addEventListener("click", openNewPost);
+  }
 }
 
 // ---------- boot ----------
 
 async function main() {
   try {
-    const [site, data] = await Promise.all([
+    const [site, data, me] = await Promise.all([
       fetchJSON("/api/site"),
-      fetchJSON("/api/posts")
+      fetchJSON("/api/posts"),
+      fetchJSON("/api/me"),
     ]);
 
     introTitle.textContent = site.title || "Shawn";
     introDesc.textContent = site.description || "";
     introAvatar.src = site.avatar || "/static/me.jpg";
+
+    currentUser = me.user;
+    renderAuthBar();
 
     state.posts = data.posts;
     renderTagBar(collectTopTags(state.posts));

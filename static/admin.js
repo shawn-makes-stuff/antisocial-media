@@ -45,6 +45,7 @@
   const createBtn = $('#create-post');
 
   const postsTableBody = $('#posts-table tbody');
+  const usersTableBody = $('#users-table tbody');
 
   // Persist admin secret for convenience.
   $('#secret').value = storage.secret;
@@ -341,6 +342,30 @@
     renderSuggestions(pTags, pTagsSuggest, allTags);
   }
 
+  async function loadUsers(){
+    const data = await fetchJSON('/api/users');
+    usersTableBody.innerHTML = '';
+    data.users.forEach(u => {
+      const tr = document.createElement('tr');
+      const tdName = document.createElement('td');
+      tdName.textContent = u.name;
+      const tdAdmin = document.createElement('td');
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.checked = !!u.is_admin;
+      chk.addEventListener('change', async () => {
+        try {
+          await putJSON(`/api/users/${u.id}`, {is_admin: chk.checked});
+          toast('User updated');
+        } catch (e) { toast('Update failed: ' + e); }
+      });
+      tdAdmin.appendChild(chk);
+      tr.appendChild(tdName);
+      tr.appendChild(tdAdmin);
+      usersTableBody.appendChild(tr);
+    });
+  }
+
   // Init autocomplete for "new post" tags input
   attachTagAutocomplete(pTags, pTagsSuggest);
 
@@ -349,6 +374,7 @@
     try{
       await loadSite();
       await loadPosts();
+      await loadUsers();
     }catch(e){
       toast('Failed to load admin: ' + e);
     }
