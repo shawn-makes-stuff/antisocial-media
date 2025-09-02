@@ -8,7 +8,6 @@ const state = {
   query: "",
   type: "all",
   tag: null,
-  tagsExpanded: false, // controls tag bar collapse/expand
   dateFrom: null,
   dateTo: null
 };
@@ -23,8 +22,6 @@ const modal = $("#modal");
 const modalBody = $("#modal-body");
 const year = $("#year");
 
-const tagWrap = $("#tagbar-wrap");
-const tagToggle = $("#tag-toggle");
 const dateFromInput = $("#date-from");
 const dateToInput = $("#date-to");
 const dateClearBtn = $("#date-clear");
@@ -121,25 +118,20 @@ function buildVideoThumb(id, title) {
 }
 
 // ---------- tag utilities ----------
+const TAG_LIMIT = 10;
 
-function applyTagCollapse() {
-  if (!tagWrap) return;
-  tagWrap.classList.toggle("collapsed", !state.tagsExpanded);
-  if (tagToggle) {
-    tagToggle.textContent = state.tagsExpanded ? "Less" : "More";
-    tagToggle.setAttribute("aria-expanded", String(state.tagsExpanded));
-  }
+function collectTopTags(posts) {
+  const counts = new Map();
+  posts.forEach(p => (p.tags || []).forEach(t => counts.set(t, (counts.get(t) || 0) + 1)));
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, TAG_LIMIT)
+    .map(([t]) => t);
 }
 
-function collectAllTags(posts) {
-  const set = new Set();
-  posts.forEach(p => (p.tags || []).forEach(t => set.add(t)));
-  return Array.from(set).sort((a, b) => a.localeCompare(b));
-}
-
-function renderTagBar(allTags) {
+function renderTagBar(tags) {
   tagBar.innerHTML = "";
-  allTags.forEach(t => {
+  tags.forEach(t => {
     const btn = document.createElement("button");
     btn.className = "chip";
     btn.textContent = `#${t}`;
@@ -149,13 +141,6 @@ function renderTagBar(allTags) {
     };
     tagBar.appendChild(btn);
   });
-  const chipH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--chip-h')) || 34;
-  const needToggle = tagBar.scrollHeight > chipH;
-  if (tagToggle) {
-    tagToggle.style.display = needToggle ? "" : "none";
-  }
-  state.tagsExpanded = needToggle ? state.tagsExpanded : true;
-  applyTagCollapse();
 }
 
 // ---------- card rendering ----------
@@ -437,13 +422,6 @@ function bindEvents() {
     render();
   });
 
-  if (tagToggle) {
-    tagToggle.addEventListener("click", () => {
-      state.tagsExpanded = !state.tagsExpanded;
-      applyTagCollapse();
-    });
-  }
-
   $$('[data-close]').forEach(el => el.addEventListener("click", closeModal));
   modal.addEventListener("click", e => {
     if (e.target === modal) closeModal();
@@ -469,7 +447,7 @@ async function main() {
     introAvatar.src = site.avatar || "/static/me.jpg";
 
     state.posts = data.posts;
-    renderTagBar(collectAllTags(state.posts));
+    renderTagBar(collectTopTags(state.posts));
     render();
   } catch (err) {
     grid.innerHTML = `<div class="muted">Failed to load posts: ${err.message}</div>`;

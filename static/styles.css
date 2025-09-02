@@ -90,15 +90,17 @@ body {
 }
 .chip.active { outline: 2px solid var(--brand); }
 
-.tagbar-wrap {
+#tag-bar {
   margin-top: 12px;
-  position: relative;
   display: grid;
-  grid-template-columns: 1fr auto; /* tags + toggle button */
-  gap: 8px;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 6px;
 }
 .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+#tag-bar .chip {
+  width: 100%;
+  text-align: center;
+}
 .tag {
   background: #0f1722;
   border: 1px solid #1b2430;
@@ -108,16 +110,6 @@ body {
   font-size: 12px;
   white-space: nowrap;
 }
-.tagbar-wrap.collapsed .tags {
-  max-height: calc(var(--chip-h) + 4px);
-  overflow: hidden;
-  position: relative;
-  padding: 2px 0;
-  /* fade-out on the right to hint there’s more */
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 60px), transparent);
-          mask-image: linear-gradient(to right, black calc(100% - 60px), transparent);
-}
-
 /* Toggle button style */
 .chip-ghost {
   background: transparent;
