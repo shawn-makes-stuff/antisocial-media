@@ -343,17 +343,150 @@ function renderAuthBar() {
 }
 
 function openNewPost() {
-  const title = prompt("Title");
-  if (title === null) return;
-  const text = prompt("Text");
-  fetch("/api/post", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, text })
-  })
-    .then(r => r.json())
-    .then(refreshPosts)
-    .catch(err => alert("Failed: " + err.message));
+  modal.classList.remove("hidden");
+  modalBody.innerHTML = $("#new-post-tpl").innerHTML;
+
+  const pTitle = $("#p-title");
+  const pText = $("#p-text");
+  const pTags = $("#p-tags");
+  const pTagsSuggest = $("#p-tags-suggest");
+  const pImage = $("#p-image");
+  const pPreviewWrap = $("#p-preview-wrap");
+  const pPreviewRow = $("#p-preview-row");
+  const createBtn = $("#create-post");
+
+  const allTags = Array.from(new Set(state.posts.flatMap(p => p.tags || []))).sort((a, b) => a.localeCompare(b));
+
+  function splitTags(val) {
+    return val.split(',').map(t => t.trim()).filter(Boolean)
+      .filter((v, i, arr) => arr.indexOf(v) === i);
+  }
+
+  function renderSuggestions() {
+    const existing = splitTags(pTags.value);
+    const currentToken = pTags.value.split(',').slice(-1)[0].trim().toLowerCase();
+    let sug = allTags.filter(t => !existing.includes(t) && (currentToken ? t.toLowerCase().startsWith(currentToken) : true));
+    sug = sug.slice(0, 12);
+    pTagsSuggest.innerHTML = "";
+    if (sug.length === 0) {
+      pTagsSuggest.classList.remove("visible");
+      return;
+    }
+    sug.forEach(tag => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "sugg-chip";
+      btn.textContent = `#${tag}`;
+      btn.addEventListener("mousedown", e => {
+        e.preventDefault();
+        const tokens = pTags.value.split(',').map(s => s.trim()).filter(Boolean);
+        if (currentToken) {
+          tokens[tokens.length - 1] = tag;
+        } else {
+          tokens.push(tag);
+        }
+        const final = tokens.filter((v, i, a) => a.indexOf(v) === i).join(", ");
+        pTags.value = final + ", ";
+        renderSuggestions();
+        pTags.focus();
+      });
+      pTagsSuggest.appendChild(btn);
+    });
+    pTagsSuggest.classList.add("visible");
+  }
+
+  pTags.addEventListener("input", renderSuggestions);
+  pTags.addEventListener("focus", renderSuggestions);
+  pTags.addEventListener("blur", () => setTimeout(() => pTagsSuggest.classList.remove("visible"), 150));
+
+  let attachedImages = [];
+
+  function addFiles(files) {
+    files.forEach(f => {
+      if (!f.type.startsWith("image/")) return;
+      const url = URL.createObjectURL(f);
+      attachedImages.push({ file: f, url });
+      const item = document.createElement("div");
+      item.className = "preview-item";
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "preview";
+      item.appendChild(img);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "✖";
+      btn.addEventListener("click", () => {
+        const idx = attachedImages.findIndex(ai => ai.file === f);
+        if (idx > -1) {
+          URL.revokeObjectURL(attachedImages[idx].url);
+          attachedImages.splice(idx, 1);
+        }
+        item.remove();
+        if (attachedImages.length === 0) {
+          pPreviewRow.style.display = "none";
+        }
+      });
+      item.appendChild(btn);
+      pPreviewWrap.appendChild(item);
+    });
+    if (attachedImages.length > 0) {
+      pPreviewRow.style.display = "";
+    }
+  }
+
+  pText.addEventListener("paste", e => {
+    const imgs = Array.from(e.clipboardData?.files || []).filter(f => f.type.startsWith("image/"));
+    if (imgs.length) {
+      addFiles(imgs);
+      pImage.value = "";
+      e.preventDefault();
+    }
+  });
+
+  pImage.addEventListener("change", () => {
+    const imgs = Array.from(pImage.files).filter(f => f.type.startsWith("image/"));
+    if (imgs.length) {
+      addFiles(imgs);
+      pImage.value = "";
+    }
+  });
+
+  async function handleCreatePost() {
+    try {
+      let r;
+      if (attachedImages.length) {
+        const fd = new FormData();
+        fd.append("title", pTitle.value.trim());
+        fd.append("text", pText.value.trim());
+        fd.append("tags", splitTags(pTags.value).join(","));
+        attachedImages.forEach(ai => fd.append("files", ai.file));
+        r = await fetch("/api/post", { method: "POST", body: fd });
+      } else {
+        const body = {
+          title: pTitle.value.trim(),
+          text: pText.value.trim(),
+          tags: splitTags(pTags.value).join(",")
+        };
+        r = await fetch("/api/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      }
+      if (!r.ok) throw new Error(await r.text());
+      await r.json();
+      attachedImages.forEach(ai => URL.revokeObjectURL(ai.url));
+      refreshPosts();
+      closeModal();
+    } catch (e) {
+      alert("Failed: " + e.message);
+    }
+  }
+
+  createBtn.addEventListener("click", e => {
+    e.preventDefault();
+    handleCreatePost();
+  });
 }
 
 // Update the active state of type filter chips

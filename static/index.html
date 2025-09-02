@@ -58,11 +58,34 @@
           <div class="muted author" data-role="author"></div>
           <p class="desc" data-role="desc"></p>
           <div class="tags" data-role="tags"></div>
-          <div class="muted comment-count" data-role="comment-count"></div>
-        </div>
-      </article>
+        <div class="muted comment-count" data-role="comment-count"></div>
+      </div>
+    </article>
     </template>
   </main>
+
+  <template id="new-post-tpl">
+    <div class="panel">
+      <div class="content">
+        <h2>New Post</h2>
+        <div class="row"><label>Title</label><input id="p-title" type="text"/></div>
+        <div class="row"><label>Description</label><textarea id="p-text" placeholder="Write something, paste a link, or paste an image"></textarea></div>
+        <div class="row"><label>Images</label><input id="p-image" type="file" accept="image/*" multiple/></div>
+        <div class="row" id="p-preview-row" style="display:none;">
+          <label>Preview</label>
+          <div id="p-preview-wrap"></div>
+        </div>
+        <div class="row">
+          <label>Tags</label>
+          <div>
+            <input id="p-tags" type="text" placeholder="comma,separated,tags"/>
+            <div class="tag-suggest" id="p-tags-suggest"></div>
+          </div>
+        </div>
+        <button class="btn" type="button" id="create-post">Create Post</button>
+      </div>
+    </div>
+  </template>
 
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal__backdrop" data-close></div>
