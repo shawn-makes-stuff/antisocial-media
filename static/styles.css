@@ -182,7 +182,12 @@ body {
   object-fit: cover;
 }
 .link-card__text { display: grid; gap: 4px; }
-.link-card__title { margin: 0; font-size: 16px; }
+.link-card__title {
+  margin: 0;
+  font-size: 16px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
 .link-card__desc { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
 
 /* Card body */
@@ -195,6 +200,8 @@ body {
   line-height: 1.2;
   word-break: break-word;
   overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1;
 }
 .date { font-size: 12px; }
 
@@ -236,7 +243,8 @@ body {
   -webkit-line-clamp: 3;      /* clamp to ~3 lines inside the 16:9 thumb */
   -webkit-box-orient: vertical;
   overflow: hidden;
-  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Markdown content */
