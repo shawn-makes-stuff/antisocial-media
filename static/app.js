@@ -331,7 +331,7 @@ function renderAuthBar() {
     authBar.innerHTML = `Logged in as ${currentUser.name} <a href="/logout">Logout</a>`;
     newPostBtn.style.display = "block";
   } else {
-    authBar.innerHTML = `<a href="/login">Login with Discord</a>`;
+    authBar.innerHTML = `<a class="login-btn" href="/login"><img src="/static/discord.svg" alt="">Login with Discord</a>`;
     newPostBtn.style.display = "none";
   }
 }

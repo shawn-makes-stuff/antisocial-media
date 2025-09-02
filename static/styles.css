@@ -409,6 +409,20 @@ body {
   margin-top: 8px;
 }
 #auth-bar a { color: var(--brand); text-decoration: none; }
+#auth-bar .login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid #1b2430;
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: var(--text);
+}
+#auth-bar .login-btn img {
+  width: 20px;
+  height: 20px;
+}
 .author { font-size: 14px; }
 .comment-count { font-size: 14px; margin-top: 4px; }
 .floating-btn {
@@ -424,5 +438,48 @@ body {
   font-size: 32px;
   line-height: 48px;
   text-align: center;
+  cursor: pointer;
+}
+
+/* Comments */
+.comments {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.comments h3 {
+  margin: 0 0 4px 0;
+}
+.comment {
+  background: var(--panel);
+  border: 1px solid #1b2430;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.comment strong {
+  color: var(--brand);
+}
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.comment-form textarea {
+  background: var(--panel);
+  border: 1px solid #1b2430;
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px;
+  resize: vertical;
+}
+.comment-form button {
+  align-self: flex-end;
+  background: var(--brand);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  color: #000;
   cursor: pointer;
 }
