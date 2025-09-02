@@ -159,13 +159,18 @@ def api_create_post():
     if not require_admin(request):
         return make_response(("Unauthorized", 401))
 
-    # Accept multipart form so image files can be sent directly with the post
-    if request.content_type and request.content_type.startswith("multipart/form-data"):
+    # Accept multipart form so image files can be sent directly with the post.
+    # Fall back to parsing JSON when no files are uploaded.
+    if request.files:
         form = request.form
-        files = request.files.getlist("files")
+        files = request.files.getlist("files") or request.files.getlist("file")
         if not files:
             f = request.files.get("file")
             files = [f] if f else []
+    elif request.form:
+        # Form submission without files (e.g. standard form POST)
+        form = request.form
+        files = []
     else:
         form = request.get_json(force=True, silent=True) or {}
         files = []

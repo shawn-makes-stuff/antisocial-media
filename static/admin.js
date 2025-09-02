@@ -198,7 +198,6 @@
     };
 
     tr.querySelector('.b-del').onclick = async ()=>{
-      if(!confirm('Delete this post?')) return;
       try{
         await del(`/api/post/${post.id}`);
         await loadPosts();
@@ -291,12 +290,22 @@
 
   async function handleCreatePost(){
     try{
-      const fd = new FormData();
-      fd.append('title', pTitle.value.trim());
-      fd.append('text',  pText.value.trim());
-      fd.append('tags',  splitTags(pTags.value).join(','));
-      attachedImages.forEach(ai=> fd.append('files', ai.file));
-      const r = await fetch('/api/post', {method:'POST', headers:{'X-Admin-Secret': storage.secret}, body: fd});
+      let r;
+      if(attachedImages.length){
+        const fd = new FormData();
+        fd.append('title', pTitle.value.trim());
+        fd.append('text',  pText.value.trim());
+        fd.append('tags',  splitTags(pTags.value).join(','));
+        attachedImages.forEach(ai=> fd.append('files', ai.file));
+        r = await fetch('/api/post', {method:'POST', headers:{'X-Admin-Secret': storage.secret}, body: fd});
+      }else{
+        const body = {
+          title: pTitle.value.trim(),
+          text:  pText.value.trim(),
+          tags:  splitTags(pTags.value).join(',')
+        };
+        r = await fetch('/api/post', {method:'POST', headers: headers(), body: JSON.stringify(body)});
+      }
       if(!r.ok) throw new Error(await r.text());
       await r.json();
       await loadPosts();
@@ -310,9 +319,9 @@
     }catch(e){ toast('Create failed: ' + e); }
   }
 
-  createBtn.addEventListener('click', (e)=>{
+  createBtn.addEventListener('click', async (e)=>{
     e.preventDefault();
-    handleCreatePost();
+    await handleCreatePost();
   });
 
   // ====== Loaders ======
