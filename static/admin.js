@@ -160,15 +160,10 @@
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="type-pill">${post.type}</span></td>
-      <td><input class="t-title" value="${escapeAttr(post.title || post.text || '')}"></td>
-      <td><input class="t-url" value="${escapeAttr(post.url||'')}"></td>
-      <td>
-        <div>
-          <input class="t-tags" value="${escapeAttr((post.tags||[]).join(', '))}">
-          <div class="tag-suggest"></div>
-        </div>
-      </td>
-      <td><input class="t-date" value="${escapeAttr(post.date || '')}" style="width:120px"></td>
+      <td><input type="text" class="t-title" value="${escapeAttr(post.title || post.text || '')}"></td>
+      <td><input type="text" class="t-url" value="${escapeAttr(post.url||'')}"></td>
+      <td><input type="text" class="t-tags" value="${escapeAttr((post.tags||[]).join(', '))}"></td>
+      <td><input type="text" class="t-date" value="${escapeAttr(post.date || '')}" style="width:120px"></td>
       <td class="flex">
         <button class="btn b-save">Save</button>
         <button class="btn b-del">Delete</button>
@@ -176,8 +171,6 @@
     `;
 
     const tTags = tr.querySelector('.t-tags');
-    const sugg  = tr.querySelector('.tag-suggest');
-    attachTagAutocomplete(tTags, sugg);
 
     tr.querySelector('.b-save').onclick = async ()=>{
       try{
