@@ -90,13 +90,16 @@ body {
 }
 .chip.active { outline: 2px solid var(--brand); }
 
-.tagbar-wrap {
+#tag-bar {
   margin-top: 12px;
-  position: relative;
   display: grid;
-  grid-template-columns: 1fr auto; /* tags + toggle button */
-  gap: 8px;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 6px;
+}
+#tag-bar .chip {
+  width: 100%;
+  text-align: center;
+  padding: 6px 8px;
 }
 .tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .tag {
@@ -108,7 +111,7 @@ body {
   font-size: 12px;
   white-space: nowrap;
 }
-/* Toggle button style */
+/* Ghost chip style */
 .chip-ghost {
   background: transparent;
   border: 1px dashed #2a3646;
