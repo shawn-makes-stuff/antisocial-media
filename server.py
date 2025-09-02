@@ -1,4 +1,13 @@
-from flask import Flask, send_from_directory, jsonify, request, make_response
+from flask import (
+    Flask,
+    send_from_directory,
+    jsonify,
+    request,
+    make_response,
+    session,
+    redirect,
+    url_for,
+)
 from werkzeug.utils import secure_filename
 import os, json, re, requests, tempfile, time
 from bs4 import BeautifulSoup
@@ -7,12 +16,18 @@ from urllib.parse import urljoin, urlparse
 app = Flask(__name__, static_url_path="/static", static_folder="static")
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20MB
+app.secret_key = os.environ.get("SECRET_KEY", "dev")
 
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 POSTS_FILE = "posts/posts.json"
 SITE_FILE  = "posts/site.json"  # profile meta
+USERS_FILE = "users/users.json"
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "changeme")  # set real value in env!
+
+DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "")
+DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "")
+DISCORD_REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI", "http://localhost:5173/callback")
 
 YOUTUBE_PATTERNS = [
     r"(?:https?://)?(?:www\.)?youtube\.com/watch\?v=([A-Za-z0-9_\-]{6,})",
@@ -49,8 +64,29 @@ def load_site():
 def save_site(site):
     atomic_write(SITE_FILE, site)
 
+
+def load_users():
+    data = load_json(USERS_FILE, {"users": []})
+    return data.get("users", [])
+
+
+def save_users(users):
+    atomic_write(USERS_FILE, {"users": users})
+
+
+def current_user():
+    uid = session.get("uid")
+    if not uid:
+        return None
+    for u in load_users():
+        if u.get("id") == uid:
+            return u
+    return None
+
 def require_admin(req):
-    # very small “auth”: client sends X-Admin-Secret header
+    user = current_user()
+    if user and user.get("is_admin"):
+        return True
     secret = req.headers.get("X-Admin-Secret") or req.args.get("key")
     return secret == ADMIN_SECRET
 
@@ -60,14 +96,110 @@ def index():
 
 @app.route("/admin")
 def admin_page():
-    # serve admin UI; no server-side session, front-end will send secret with each call
+    user = current_user()
+    if not (user and user.get("is_admin")):
+        return redirect("/login")
     return send_from_directory("static", "admin.html")
+
+
+@app.route("/login")
+def login():
+    if not DISCORD_CLIENT_ID or not DISCORD_REDIRECT_URI:
+        return make_response(("Discord OAuth not configured", 500))
+    params = {
+        "client_id": DISCORD_CLIENT_ID,
+        "redirect_uri": DISCORD_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "identify",
+    }
+    url = "https://discord.com/api/oauth2/authorize" + "?" + requests.compat.urlencode(params)
+    return redirect(url)
+
+
+@app.route("/callback")
+def callback():
+    code = request.args.get("code")
+    if not code:
+        return redirect("/")
+    data = {
+        "client_id": DISCORD_CLIENT_ID,
+        "client_secret": DISCORD_CLIENT_SECRET,
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": DISCORD_REDIRECT_URI,
+        "scope": "identify",
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    r = requests.post("https://discord.com/api/oauth2/token", data=data, headers=headers)
+    if r.status_code != 200:
+        return make_response(("OAuth failed", 400))
+    token = r.json().get("access_token")
+    if not token:
+        return make_response(("OAuth failed", 400))
+    r = requests.get("https://discord.com/api/users/@me", headers={"Authorization": f"Bearer {token}"})
+    if r.status_code != 200:
+        return make_response(("OAuth user fetch failed", 400))
+    info = r.json()
+    users = load_users()
+    uid = info.get("id")
+    name = info.get("username")
+    user = next((u for u in users if u.get("id") == uid), None)
+    if not user:
+        user = {"id": uid, "name": name, "is_admin": False}
+        users.append(user)
+        save_users(users)
+    session["uid"] = uid
+    return redirect("/")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 # -------- Public APIs --------
 
 @app.route("/api/posts")
 def api_posts():
-    return jsonify({"posts": load_posts()})
+    posts = load_posts()
+    users = {u["id"]: u for u in load_users()}
+    for p in posts:
+        uid = p.get("user_id")
+        if uid and uid in users:
+            p["user"] = {"id": uid, "name": users[uid]["name"]}
+        p["comment_count"] = len(p.get("comments", []))
+        for c in p.get("comments", []):
+            cu = users.get(c.get("user_id"))
+            if cu:
+                c["user"] = {"id": cu["id"], "name": cu["name"]}
+    return jsonify({"posts": posts})
+
+
+@app.route("/api/me")
+def api_me():
+    return jsonify({"user": current_user()})
+
+
+@app.route("/api/users")
+def api_users():
+    if not require_admin(request):
+        return make_response(("Unauthorized", 401))
+    return jsonify({"users": load_users()})
+
+
+@app.route("/api/users/<uid>", methods=["PUT"])
+def api_user_update(uid):
+    if not require_admin(request):
+        return make_response(("Unauthorized", 401))
+    body = request.get_json(force=True, silent=True) or {}
+    users = load_users()
+    for i, u in enumerate(users):
+        if u.get("id") == uid:
+            u["is_admin"] = bool(body.get("is_admin"))
+            users[i] = u
+            save_users(users)
+            return jsonify({"ok": True, "user": u})
+    return jsonify({"error": "Not found"}), 404
 
 @app.route("/api/site")
 def api_site():
@@ -158,7 +290,8 @@ def api_update_site():
 
 @app.route("/api/post", methods=["POST"])
 def api_create_post():
-    if not require_admin(request):
+    user = current_user()
+    if not user:
         return make_response(("Unauthorized", 401))
 
     # Accept multipart form so image files can be sent directly with the post.
@@ -214,6 +347,8 @@ def api_create_post():
         "text": text or None,
         "url": url,
         "type": ptype,
+        "user_id": user["id"],
+        "comments": [],
     }
     if urls:
         post["urls"] = urls
@@ -245,6 +380,32 @@ def api_delete_post(pid):
     new_posts = [p for p in posts if p.get("id") != pid]
     save_posts(new_posts)
     return jsonify({"ok": True, "deleted": pid})
+
+
+@app.route("/api/post/<pid>/comment", methods=["POST"])
+def api_post_comment(pid):
+    user = current_user()
+    if not user:
+        return make_response(("Unauthorized", 401))
+    body = request.get_json(force=True, silent=True) or {}
+    text = (body.get("text") or "").strip()
+    if not text:
+        return make_response(("Missing text", 400))
+    posts = load_posts()
+    for i, post in enumerate(posts):
+        if post.get("id") == pid:
+            comments = post.setdefault("comments", [])
+            comment = {
+                "id": f"c-{int(time.time()*1000)}",
+                "user_id": user["id"],
+                "text": text,
+                "date": time.strftime("%Y-%m-%d"),
+            }
+            comments.append(comment)
+            posts[i] = post
+            save_posts(posts)
+            return jsonify({"ok": True, "comment": comment})
+    return jsonify({"error": "Not found"}), 404
 
 # -------- Helpers --------
 

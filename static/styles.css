@@ -402,3 +402,27 @@ body {
 
 /* Footer */
 .footer { padding-bottom: 40px; }
+
+/* Added for user accounts and posting */
+#auth-bar {
+  text-align: right;
+  margin-top: 8px;
+}
+#auth-bar a { color: var(--brand); text-decoration: none; }
+.author { font-size: 14px; }
+.comment-count { font-size: 14px; margin-top: 4px; }
+.floating-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--brand);
+  color: #000;
+  font-size: 32px;
+  line-height: 48px;
+  text-align: center;
+  cursor: pointer;
+}

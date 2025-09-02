@@ -21,6 +21,10 @@ const typeChips = $$('.chip[data-type]');
 const modal = $("#modal");
 const modalBody = $("#modal-body");
 const year = $("#year");
+const authBar = $("#auth-bar");
+const newPostBtn = $("#btn-new-post");
+
+let currentUser = null;
 
 const dateFromInput = $("#date-from");
 const dateToInput = $("#date-to");
@@ -154,10 +158,15 @@ function renderCard(post) {
   const desc = node.querySelector('[data-role="desc"]');
   const date = node.querySelector('[data-role="date"]');
   const tags = node.querySelector('[data-role="tags"]');
+  const authorEl = node.querySelector('[data-role="author"]');
+  const commentEl = node.querySelector('[data-role="comment-count"]');
 
   date.textContent = fmtDate(post.date);
   title.textContent = post.title || "";
   if (!post.title) title.style.display = "none";
+
+  authorEl.textContent = post.user ? `by ${post.user.name}` : "";
+  commentEl.textContent = `${post.comment_count || 0} comments`;
 
   // Description (truncated by CSS)
   desc.textContent = post.text || post.description || "";
@@ -310,6 +319,37 @@ function render() {
   });
 }
 
+async function refreshPosts() {
+  const data = await fetchJSON("/api/posts");
+  state.posts = data.posts;
+  renderTagBar(collectTopTags(state.posts));
+  render();
+}
+
+function renderAuthBar() {
+  if (currentUser) {
+    authBar.innerHTML = `Logged in as ${currentUser.name} <a href="/logout">Logout</a>`;
+    newPostBtn.style.display = "block";
+  } else {
+    authBar.innerHTML = `<a href="/login">Login with Discord</a>`;
+    newPostBtn.style.display = "none";
+  }
+}
+
+function openNewPost() {
+  const title = prompt("Title");
+  if (title === null) return;
+  const text = prompt("Text");
+  fetch("/api/post", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, text })
+  })
+    .then(r => r.json())
+    .then(refreshPosts)
+    .catch(err => alert("Failed: " + err.message));
+}
+
 // Update the active state of type filter chips
 function updateTypeChips() {
   typeChips.forEach(chip => {
@@ -384,6 +424,44 @@ function openPost(post) {
     <div class="muted">${fmtDate(post.date)}</div>
   `;
   modalBody.appendChild(meta);
+
+  if (post.comments && post.comments.length) {
+    const wrap = document.createElement("div");
+    wrap.className = "comments";
+    post.comments.forEach(c => {
+      const d = document.createElement("div");
+      d.className = "comment";
+      d.innerHTML = `<strong>${c.user ? c.user.name : 'Anon'}:</strong> ${renderMarkdown(c.text)}`;
+      wrap.appendChild(d);
+    });
+    modalBody.appendChild(wrap);
+  }
+
+  if (currentUser) {
+    const form = document.createElement("form");
+    form.className = "comment-form";
+    const ta = document.createElement("textarea");
+    ta.required = true;
+    const btn = document.createElement("button");
+    btn.textContent = "Comment";
+    form.appendChild(ta);
+    form.appendChild(btn);
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      try {
+        await fetch(`/api/post/${post.id}/comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: ta.value })
+        });
+        await refreshPosts();
+        closeModal();
+      } catch (err) {
+        alert('Failed to comment: ' + err.message);
+      }
+    });
+    modalBody.appendChild(form);
+  }
 }
 
 function closeModal() {
@@ -442,20 +520,28 @@ function bindEvents() {
   });
 
   updateTypeChips();
+
+  if (newPostBtn) {
+    newPostBtn.addEventListener("click", openNewPost);
+  }
 }
 
 // ---------- boot ----------
 
 async function main() {
   try {
-    const [site, data] = await Promise.all([
+    const [site, data, me] = await Promise.all([
       fetchJSON("/api/site"),
-      fetchJSON("/api/posts")
+      fetchJSON("/api/posts"),
+      fetchJSON("/api/me"),
     ]);
 
     introTitle.textContent = site.title || "Shawn";
     introDesc.textContent = site.description || "";
     introAvatar.src = site.avatar || "/static/me.jpg";
+
+    currentUser = me.user;
+    renderAuthBar();
 
     state.posts = data.posts;
     renderTagBar(collectTopTags(state.posts));
