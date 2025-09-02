@@ -42,6 +42,7 @@
   const pImage = $('#p-image');
   const pPreview = $('#p-preview');
   const pPreviewRow = $('#p-preview-row');
+  const pClearImage = $('#p-clear-image');
   const createBtn = $('#create-post');
 
   const postsTableBody = $('#posts-table tbody');
@@ -242,6 +243,7 @@
   }
 
   function clearPreview(){
+    if(pPreview.src) URL.revokeObjectURL(pPreview.src);
     pPreview.src = '';
     pPreviewRow.style.display = 'none';
   }
@@ -267,6 +269,13 @@
       attachedImage = null;
       clearPreview();
     }
+  });
+
+  pClearImage.addEventListener('click', ()=>{
+    attachedImage = null;
+    pImage.value = '';
+    clearPreview();
+    toast('Image removed.');
   });
 
   async function handleCreatePost(){

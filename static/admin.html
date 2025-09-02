@@ -80,6 +80,24 @@
       pointer-events: none;
     }
     #toast.show{ opacity: 1; }
+
+    /* Image preview with removable option */
+    #p-preview-wrap{ position: relative; display: inline-block; }
+    #p-clear-image{
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: #0e1420;
+      border: 1px solid #1b2430;
+      color: var(--text);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      line-height: 18px;
+      text-align: center;
+      cursor: pointer;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
@@ -123,7 +141,13 @@
         <div class="row"><label>Title</label><input id="p-title" type="text"/></div>
         <div class="row"><label>Description</label><textarea id="p-text" placeholder="Write something, paste a link, or paste an image"></textarea></div>
         <div class="row"><label>Image</label><input id="p-image" type="file" accept="image/*"/></div>
-        <div class="row" id="p-preview-row" style="display:none;"><label>Preview</label><img id="p-preview" alt="preview" style="max-height:200px; max-width:100%;"/></div>
+        <div class="row" id="p-preview-row" style="display:none;">
+          <label>Preview</label>
+          <div id="p-preview-wrap">
+            <img id="p-preview" alt="preview" style="max-height:200px; max-width:100%;"/>
+            <button type="button" id="p-clear-image" aria-label="Remove image">✖</button>
+          </div>
+        </div>
         <div class="row">
           <label>Tags</label>
           <div>
