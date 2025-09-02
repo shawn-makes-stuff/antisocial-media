@@ -1,6 +1,6 @@
 {
-  "title": "Antisocial",
-  "logo": "",
-  "favicon": "",
-  "tab_text": "Antisocial"
+  "title": "The Anti-Social Network",
+  "logo": "/static/logo.png",
+  "favicon": "/static/logo.png",
+  "tab_text": "The Anti-Social Network"
 }

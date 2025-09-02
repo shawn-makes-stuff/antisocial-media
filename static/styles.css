@@ -434,7 +434,6 @@ body {
   gap: 10px;
 }
 .tags-section .tag-wrap { flex: 1 1 250px; }
-.tags-section .tag-wrap.hidden { display: none; }
 .editor-wrap {
   border: 1px solid #1b2430;
   border-radius: 10px;

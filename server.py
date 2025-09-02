@@ -56,10 +56,10 @@ def save_posts(posts):
 
 def load_site():
     return load_json(SITE_FILE, {
-        "title": "Antisocial",
-        "logo": None,
-        "favicon": None,
-        "tab_text": "Antisocial",
+        "title": "The Anti-Social Network",
+        "logo": "/static/logo.png",
+        "favicon": "/static/logo.png",
+        "tab_text": "The Anti-Social Network",
     })
 
 def save_site(site):
