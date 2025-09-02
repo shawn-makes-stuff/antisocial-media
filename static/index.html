@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Antisocial</title>
-  <link id="site-favicon" rel="icon" href="/static/favicon.ico"/>
+  <title>The Anti-Social Network</title>
+  <link id="site-favicon" rel="icon" href="/static/logo.png"/>
   <link rel="stylesheet" href="/static/styles.css"/>
 </head>
 <body>
   <header class="top-bar">
     <div class="container">
       <a class="logo-wrap" href="/">
-        <img id="site-logo" class="logo" alt=""/>
+        <img id="site-logo" class="logo" alt="" src="/static/logo.png"/>
         <h1 id="site-title"></h1>
       </a>
       <div class="actions">
@@ -78,8 +78,7 @@
       </div>
 
       <div class="tags-section">
-        <button type="button" class="chip" id="toggle-tags">Add tags</button>
-        <div id="tags-wrap" class="tag-wrap hidden">
+        <div id="tags-wrap" class="tag-wrap">
           <input id="p-tags" type="text" placeholder="comma,separated,tags"/>
           <div class="tag-suggest" id="p-tags-suggest"></div>
         </div>

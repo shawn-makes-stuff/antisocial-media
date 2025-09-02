@@ -154,6 +154,7 @@ function renderTagBar(tags) {
 
 function renderCard(post) {
   const node = cardTpl.content.firstElementChild.cloneNode(true);
+  node.dataset.id = post.id;
   const thumb = node.querySelector('[data-role="thumb"]');
   const title = node.querySelector('[data-role="title"]');
   const desc = node.querySelector('[data-role="desc"]');
@@ -225,17 +226,7 @@ function renderCard(post) {
   } else if (post.type === "link") {
     makeLinkCard(thumb, post.url, post.title);
   } else if (post.type === "text") {
-    const wrap = document.createElement("div");
-    wrap.className = "text-thumb";
-    const h = document.createElement("h3");
-    h.className = "text-thumb__title";
-    const fallback = (post.text || "").trim().slice(0, 120);
-    h.textContent = post.title || fallback || "Text";
-    wrap.appendChild(h);
-    thumb.appendChild(wrap);
-
-    // Avoid repeating title below the thumb for text posts
-    title.style.display = "none";
+    thumb.remove();
   }
 
   // Click → open modal
@@ -381,8 +372,6 @@ function openNewPost() {
   const pText = $("#p-text");
   const pTags = $("#p-tags");
   const pTagsSuggest = $("#p-tags-suggest");
-  const toggleTags = $("#toggle-tags");
-  const tagsWrap = $("#tags-wrap");
   const toolbar = modalBody.querySelector(".toolbar");
   const pImage = $("#p-image");
   const pPreviewWrap = $("#p-preview-wrap");
@@ -395,11 +384,6 @@ function openNewPost() {
   titleCount.textContent = `${pTitle.value.length}/300`;
   pTitle.addEventListener("input", () => {
     titleCount.textContent = `${pTitle.value.length}/300`;
-  });
-
-  toggleTags.addEventListener("click", () => {
-    tagsWrap.classList.toggle("hidden");
-    if (!tagsWrap.classList.contains("hidden")) pTags.focus();
   });
 
   // markdown toolbar helpers
@@ -675,6 +659,15 @@ function openPost(post) {
       const data = await r.json();
       likeBtn.classList.toggle('liked', data.liked);
       likeCount.textContent = data.like_count;
+      post.liked = data.liked;
+      post.like_count = data.like_count;
+      const sp = state.posts.find(p => p.id === post.id);
+      if (sp) {
+        sp.liked = data.liked;
+        sp.like_count = data.like_count;
+        const card = grid.querySelector(`.card[data-id="${post.id}"] [data-role="like-count"]`);
+        if (card) card.textContent = `❤ ${data.like_count}`;
+      }
     } catch (err) {
       alert('Failed: ' + err.message);
     }
