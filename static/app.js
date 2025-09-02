@@ -441,8 +441,7 @@ function openPost(post) {
     ta.required = true;
     const btn = document.createElement("button");
     btn.textContent = parentId ? "Reply" : "Comment";
-    form.appendChild(ta);
-    form.appendChild(btn);
+    form.append(ta, btn);
     form.addEventListener("submit", async e => {
       e.preventDefault();
       try {
@@ -462,55 +461,60 @@ function openPost(post) {
     return form;
   }
 
-  function renderComments(list, container) {
+  function renderComments(list) {
+    const ul = document.createElement("ul");
+    ul.className = "comments-list";
     list.forEach(c => {
-      const item = document.createElement("div");
-      item.className = "comment";
+      const li = document.createElement("li");
+      li.className = "comment-item";
+
+      const card = document.createElement("div");
+      card.className = "comment-card";
       const avatar = document.createElement("img");
-      avatar.className = "comment-avatar";
+      avatar.className = "avatar";
       avatar.src = c.user && c.user.avatar ? c.user.avatar : "/static/discord.svg";
       avatar.alt = '';
       const body = document.createElement("div");
-      body.className = "comment-content";
+      body.className = "comment-body";
       const meta = document.createElement("div");
       meta.className = "comment-meta";
       meta.textContent = c.user ? c.user.name : 'Anon';
       const text = document.createElement("div");
       text.className = "comment-text md";
       text.innerHTML = renderMarkdown(c.text);
-      body.appendChild(meta);
-      body.appendChild(text);
-      const repliesEl = document.createElement('div');
-      repliesEl.className = 'replies';
+      body.append(meta, text);
       if (currentUser) {
         const replyBtn = document.createElement("button");
         replyBtn.type = 'button';
         replyBtn.className = 'reply-btn';
         replyBtn.textContent = 'Reply';
         replyBtn.addEventListener('click', () => {
-          if (repliesEl.querySelector('form.reply-form')) return;
+          if (li.querySelector('form.reply-form')) return;
           const f = buildCommentForm(c.id);
           f.classList.add('reply-form');
-          repliesEl.prepend(f);
+          li.appendChild(f);
         });
         body.appendChild(replyBtn);
       }
-      item.appendChild(avatar);
-      item.appendChild(body);
-      item.appendChild(repliesEl);
-      container.appendChild(item);
-      renderComments(c.replies || [], repliesEl);
+      card.append(avatar, body);
+      li.appendChild(card);
+      if (c.replies && c.replies.length) {
+        li.appendChild(renderComments(c.replies));
+      }
+      ul.appendChild(li);
     });
+    return ul;
   }
 
   if (post.comments && post.comments.length) {
-    renderComments(post.comments, commentsWrap);
+    commentsWrap.appendChild(renderComments(post.comments));
   }
-  modalBody.appendChild(commentsWrap);
 
   if (currentUser) {
-    modalBody.appendChild(buildCommentForm(null));
+    commentsWrap.appendChild(buildCommentForm(null));
   }
+
+  modalBody.appendChild(commentsWrap);
 }
 
 function closeModal() {
