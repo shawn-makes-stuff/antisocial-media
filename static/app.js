@@ -362,15 +362,84 @@ function openNewPost() {
   modalBody.innerHTML = $("#new-post-tpl").innerHTML;
 
   const pTitle = $("#p-title");
+  const titleCount = $("#title-count");
   const pText = $("#p-text");
   const pTags = $("#p-tags");
   const pTagsSuggest = $("#p-tags-suggest");
+  const toggleTags = $("#toggle-tags");
+  const tagsWrap = $("#tags-wrap");
+  const toolbar = modalBody.querySelector(".toolbar");
   const pImage = $("#p-image");
   const pPreviewWrap = $("#p-preview-wrap");
   const pPreviewRow = $("#p-preview-row");
   const createBtn = $("#create-post");
+  const saveDraftBtn = $("#save-draft");
+  const mdSwitch = $("#md-switch");
 
   const allTags = Array.from(new Set(state.posts.flatMap(p => p.tags || []))).sort((a, b) => a.localeCompare(b));
+
+  // Load saved draft if any
+  try {
+    const draft = JSON.parse(localStorage.getItem("post-draft"));
+    if (draft) {
+      pTitle.value = draft.title || "";
+      pText.value = draft.text || "";
+      pTags.value = draft.tags || "";
+    }
+  } catch {}
+
+  titleCount.textContent = `${pTitle.value.length}/300`;
+  pTitle.addEventListener("input", () => {
+    titleCount.textContent = `${pTitle.value.length}/300`;
+  });
+
+  toggleTags.addEventListener("click", () => {
+    tagsWrap.classList.toggle("hidden");
+    if (!tagsWrap.classList.contains("hidden")) pTags.focus();
+  });
+
+  // markdown toolbar helpers
+  function insertAround(el, pre, suf) {
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const before = el.value.slice(0, start);
+    const sel = el.value.slice(start, end);
+    const after = el.value.slice(end);
+    el.value = before + pre + sel + suf + after;
+    el.selectionStart = start + pre.length;
+    el.selectionEnd = end + pre.length;
+  }
+  function prefixLines(el, pre) {
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const before = el.value.slice(0, start);
+    const sel = el.value.slice(start, end);
+    const after = el.value.slice(end);
+    const replaced = sel.split("\n").map(l => pre + l).join("\n");
+    el.value = before + replaced + after;
+    el.selectionStart = start;
+    el.selectionEnd = start + replaced.length;
+  }
+  toolbar.querySelectorAll("button[data-wrap],button[data-prefix]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.wrap) {
+        insertAround(pText, btn.dataset.wrap, btn.dataset.suffix || btn.dataset.wrap);
+      } else if (btn.dataset.prefix) {
+        prefixLines(pText, btn.dataset.prefix);
+      }
+      pText.focus();
+    });
+  });
+
+  mdSwitch.addEventListener("click", () => {
+    toolbar.classList.toggle("hidden");
+    mdSwitch.textContent = toolbar.classList.contains("hidden") ? "Show Toolbar" : "Switch to Markdown Editor";
+  });
+
+  saveDraftBtn.addEventListener("click", () => {
+    const draft = { title: pTitle.value, text: pText.value, tags: pTags.value };
+    localStorage.setItem("post-draft", JSON.stringify(draft));
+  });
 
   function splitTags(val) {
     return val.split(',').map(t => t.trim()).filter(Boolean)
@@ -501,6 +570,7 @@ function openNewPost() {
       pPreviewWrap.innerHTML = "";
       attachedImages = [];
       pPreviewRow.style.display = "none";
+      localStorage.removeItem("post-draft");
     } catch (e) {
       alert("Failed: " + e.message);
     }

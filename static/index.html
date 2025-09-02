@@ -65,26 +65,49 @@
   </main>
 
   <template id="new-post-tpl">
-    <div class="panel">
-      <div class="content">
-        <h2>New Post</h2>
-        <div class="row"><label>Title</label><input id="p-title" type="text"/></div>
-        <div class="row"><label>Description</label><textarea id="p-text" placeholder="Write something, paste a link, or paste an image"></textarea></div>
-        <div class="row"><label>Images</label><input id="p-image" type="file" accept="image/*" multiple/></div>
-        <div class="row" id="p-preview-row" style="display:none;">
-          <label>Preview</label>
-          <div id="p-preview-wrap"></div>
-        </div>
-        <div class="row">
-          <label>Tags</label>
-          <div>
-            <input id="p-tags" type="text" placeholder="comma,separated,tags"/>
-            <div class="tag-suggest" id="p-tags-suggest"></div>
-          </div>
-        </div>
-        <button class="btn" type="button" id="create-post">Create Post</button>
+    <form class="new-post-form">
+      <div class="title-wrap">
+        <input id="p-title" type="text" maxlength="300" placeholder="Title*" required/>
+        <div id="title-count" class="char-count">0/300</div>
       </div>
-    </div>
+
+      <div class="tags-section">
+        <button type="button" class="chip" id="toggle-tags">Add tags</button>
+        <div id="tags-wrap" class="tag-wrap hidden">
+          <input id="p-tags" type="text" placeholder="comma,separated,tags"/>
+          <div class="tag-suggest" id="p-tags-suggest"></div>
+        </div>
+      </div>
+
+      <div class="editor-wrap">
+        <div class="toolbar">
+          <button type="button" data-wrap="**" title="Bold"><b>B</b></button>
+          <button type="button" data-wrap="*" title="Italic"><i>I</i></button>
+          <button type="button" data-wrap="~~" title="Strikethrough"><s>S</s></button>
+          <button type="button" data-prefix="> " title="Quote">&gt;</button>
+          <button type="button" data-prefix="- " title="Bulleted list">•</button>
+          <button type="button" data-prefix="1. " title="Numbered list">1.</button>
+          <button type="button" data-wrap="`" title="Inline code">{}</button>
+          <button type="button" data-wrap="![alt](" data-suffix=")" title="Image">🖼</button>
+          <button type="button" data-wrap="[" data-suffix="](url)" title="Link">🔗</button>
+          <span class="flex-spacer"></span>
+          <button type="button" id="md-switch" class="switch">Switch to Markdown Editor</button>
+        </div>
+        <textarea id="p-text" placeholder="Body text (optional)"></textarea>
+      </div>
+
+      <div class="images-row">
+        <input id="p-image" type="file" accept="image/*" multiple/>
+      </div>
+      <div class="preview-row" id="p-preview-row" style="display:none;">
+        <div id="p-preview-wrap"></div>
+      </div>
+
+      <div class="action-row">
+        <button type="button" class="btn ghost" id="save-draft">Save Draft</button>
+        <button class="btn" type="button" id="create-post">Post</button>
+      </div>
+    </form>
   </template>
 
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
