@@ -178,6 +178,11 @@ function renderCard(post) {
     img.src = src;
     img.alt = post.title || "photo";
     thumb.appendChild(img);
+    if (post.urls && post.urls.length > 1) {
+      const badge = document.createElement("div");
+      badge.className = "gallery-badge";
+      thumb.appendChild(badge);
+    }
   } else if (post.type === "video") {
     const id = isYouTube(post.url);
     if (id) {
