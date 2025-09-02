@@ -385,7 +385,7 @@ body {
   max-height: 90vh;
   width: auto;
   height: auto;
-  min-width: 300px;
+  min-width: min(500px, 96vw);
   background: var(--panel-2);
   border: 1px solid #1b2430;
   border-radius: 18px;
@@ -476,7 +476,7 @@ input[type="text"], textarea, select {
   color: var(--text);
   padding:8px 10px;
 }
-textarea { min-height:90px; }
+textarea { min-height:120px; }
 .btn {
   background: var(--chip);
   border:1px solid #2a3646;

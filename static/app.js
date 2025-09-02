@@ -357,7 +357,7 @@ function renderAuthBar() {
 
 function openNewPost() {
   modal.classList.remove("hidden");
-  modalContent.style.width = "600px";
+  modalContent.style.width = "700px";
   modalBody.innerHTML = $("#new-post-tpl").innerHTML;
 
   const pTitle = $("#p-title");
