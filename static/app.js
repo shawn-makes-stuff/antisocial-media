@@ -20,6 +20,7 @@ const searchInput = $("#search");
 const typeChips = $$('.chip[data-type]');
 const modal = $("#modal");
 const modalBody = $("#modal-body");
+const modalContent = $(".modal__content");
 const year = $("#year");
 const authBar = $("#auth-bar");
 const newPostBtn = $("#btn-new-post");
@@ -344,6 +345,7 @@ function renderAuthBar() {
 
 function openNewPost() {
   modal.classList.remove("hidden");
+  modalContent.style.width = "600px";
   modalBody.innerHTML = $("#new-post-tpl").innerHTML;
 
   const pTitle = $("#p-title");
@@ -476,8 +478,16 @@ function openNewPost() {
       if (!r.ok) throw new Error(await r.text());
       await r.json();
       attachedImages.forEach(ai => URL.revokeObjectURL(ai.url));
-      refreshPosts();
-      closeModal();
+      await refreshPosts();
+      // reset form for another post
+      pTitle.value = "";
+      pText.value = "";
+      pTags.value = "";
+      pTagsSuggest.innerHTML = "";
+      pTagsSuggest.classList.remove("visible");
+      pPreviewWrap.innerHTML = "";
+      attachedImages = [];
+      pPreviewRow.style.display = "none";
     } catch (e) {
       alert("Failed: " + e.message);
     }
@@ -500,6 +510,7 @@ function updateTypeChips() {
 
 function openPost(post) {
   modal.classList.remove("hidden");
+  modalContent.style.width = "";
   modalBody.innerHTML = "";
 
   if (post.type === "photo") {
@@ -567,31 +578,49 @@ function openPost(post) {
   const commentsWrap = document.createElement("div");
   commentsWrap.className = "comments";
 
-  function buildCommentForm(parentId) {
-    const form = document.createElement("form");
-    form.className = "comment-form";
-    const ta = document.createElement("textarea");
-    ta.required = true;
-    const btn = document.createElement("button");
-    btn.textContent = parentId ? "Reply" : "Comment";
-    form.append(ta, btn);
-    form.addEventListener("submit", async e => {
+  let commentParent = null;
+  const form = document.createElement("form");
+  form.className = "comment-form";
+  const ta = document.createElement("textarea");
+  ta.required = true;
+  const btn = document.createElement("button");
+  btn.textContent = "Comment";
+  form.append(ta, btn);
+
+  ta.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      try {
-        const payload = { text: ta.value };
-        if (parentId) payload.parent = parentId;
-        await fetch(`/api/post/${post.id}/comment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        await refreshPosts();
-        closeModal();
-      } catch (err) {
-        alert('Failed to comment: ' + err.message);
-      }
-    });
-    return form;
+      form.requestSubmit();
+    }
+  });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    try {
+      const payload = { text: ta.value };
+      if (commentParent) payload.parent = commentParent;
+      await fetch(`/api/post/${post.id}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      ta.value = "";
+      commentParent = null;
+      btn.textContent = "Comment";
+      commentsWrap.appendChild(form);
+      await refreshPosts();
+      const updated = state.posts.find(p => p.id === post.id);
+      openPost(updated);
+    } catch (err) {
+      alert('Failed to comment: ' + err.message);
+    }
+  });
+
+  function moveForm(target, parentId) {
+    commentParent = parentId;
+    btn.textContent = parentId ? "Reply" : "Comment";
+    target.appendChild(form);
+    ta.focus();
   }
 
   function renderComments(list) {
@@ -621,12 +650,7 @@ function openPost(post) {
         replyBtn.type = 'button';
         replyBtn.className = 'reply-btn';
         replyBtn.textContent = 'Reply';
-        replyBtn.addEventListener('click', () => {
-          if (li.querySelector('form.reply-form')) return;
-          const f = buildCommentForm(c.id);
-          f.classList.add('reply-form');
-          li.appendChild(f);
-        });
+        replyBtn.addEventListener('click', () => moveForm(li, c.id));
         body.appendChild(replyBtn);
       }
       card.append(avatar, body);
@@ -644,7 +668,7 @@ function openPost(post) {
   }
 
   if (currentUser) {
-    commentsWrap.appendChild(buildCommentForm(null));
+    commentsWrap.appendChild(form);
   }
 
   modalBody.appendChild(commentsWrap);
@@ -665,6 +689,7 @@ function closeModal() {
   });
   modalBody.innerHTML = ""; // ensure playback stops
   modal.classList.add("hidden");
+  modalContent.style.width = "";
 }
 
 // ---------- event binding ----------
