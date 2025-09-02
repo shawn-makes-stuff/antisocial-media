@@ -7,9 +7,10 @@ Configure a discord application and set up oauth. Configure client id, client se
 You will also need to enable the "identify" scope.  
   
 Once you have configured your discord app, set enviroment variables accordingly:  
+For windows users, fill in the variables as needed and run this in terminal.  
 setx DISCORD_CLIENT_ID "x"  
 setx DISCORD_CLIENT_SECRET "x"  
-setx DISCORD_REDIRECT_URI "http://localhost:5173/callback" //localhost is default, you will change this for your domain  
+setx DISCORD_REDIRECT_URI "http://localhost:5173/callback"  
 python server.py  
   
 Once you have successfully run the application and logged in with discord, locate your user in users.json  
