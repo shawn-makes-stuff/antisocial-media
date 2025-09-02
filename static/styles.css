@@ -182,13 +182,27 @@ body {
   object-fit: cover;
 }
 .link-card__text { display: grid; gap: 4px; }
-.link-card__title { margin: 0; font-size: 16px; }
+.link-card__title {
+  margin: 0;
+  font-size: 16px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
 .link-card__desc { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
 
 /* Card body */
 .card .body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .title-row { display: flex; align-items: baseline; gap: 10px; justify-content: space-between; }
-.title { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.2; }
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1;
+}
 .date { font-size: 12px; }
 
 .desc {
@@ -229,13 +243,16 @@ body {
   -webkit-line-clamp: 3;      /* clamp to ~3 lines inside the 16:9 thumb */
   -webkit-box-orient: vertical;
   overflow: hidden;
-  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Markdown content */
 .md {
   color: #e7eefb;
   line-height: 1.65;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .md p { margin: 0.5em 0; }
 .md a { color: #9ecbff; text-decoration: underline; }
@@ -316,7 +333,20 @@ body {
   padding: 4px 8px; cursor: pointer;
 }
 
-#modal-body { padding: 14px; display: grid; gap: 12px; }
+.modal__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+#modal-body {
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+}
 
 /* Media scales to viewport but doesn't force empty space */
 .modal__media {
