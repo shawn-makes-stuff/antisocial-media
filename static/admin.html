@@ -103,25 +103,8 @@
     <div class="panel">
       <div class="content">
         <h2>New Post</h2>
-        <div class="row">
-          <label>Type</label>
-          <select id="p-type">
-            <option value="photo">Photo</option>
-            <option value="video">Video (YouTube link)</option>
-            <option value="text">Text</option>
-            <option value="link">Link</option>
-          </select>
-        </div>
         <div class="row"><label>Title</label><input id="p-title" type="text"/></div>
-        <div class="row"><label>Text</label><textarea id="p-text" placeholder="Only for text posts (optional caption for photos)"></textarea></div>
-        <div class="row">
-          <label>URL</label>
-          <div class="flex">
-            <input id="p-url" type="text" placeholder="Image URL / YouTube URL / Link URL"/>
-            <input id="p-file" type="file" accept="image/*"/>
-            <button class="btn" id="upload-photo">Upload photo</button>
-          </div>
-        </div>
+        <div class="row"><label>Description</label><textarea id="p-text" placeholder="Write something, paste a link, or paste an image"></textarea></div>
         <div class="row">
           <label>Tags</label>
           <div>

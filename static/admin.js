@@ -30,11 +30,8 @@
   const avatarFile  = $('#avatar-file');
   const uploadAvatarBtn = $('#upload-avatar');
 
-  const pType  = $('#p-type');
   const pTitle = $('#p-title');
   const pText  = $('#p-text');
-  const pUrl   = $('#p-url');
-  const pFile  = $('#p-file');
   const pTags  = $('#p-tags');
   const pTagsSuggest = $('#p-tags-suggest');
   const createBtn = $('#create-post');
@@ -229,36 +226,36 @@
   uploadAvatarBtn.onclick = handleUploadAvatar;
 
   // ====== Post creation handlers ======
+  let pastedImage = null;
+
+  pText.addEventListener('paste', (e)=>{
+    const files = Array.from(e.clipboardData?.files || []);
+    const img = files.find(f=>f.type.startsWith('image/'));
+    if(img){
+      pastedImage = img;
+      toast('Image attached.');
+      e.preventDefault();
+    }
+  });
+
   async function handleCreatePost(){
     try{
-      const type = pType.value;
-      const body = {
-        type,
-        title: pTitle.value.trim() || undefined,
-        text:  pText.value.trim() || undefined,
-        url:   pUrl.value.trim() || undefined,
-        tags:  splitTags(pTags.value)
-      };
-      await postJSON('/api/post', body);
+      const fd = new FormData();
+      fd.append('title', pTitle.value.trim());
+      fd.append('text',  pText.value.trim());
+      fd.append('tags',  splitTags(pTags.value).join(','));
+      if(pastedImage) fd.append('file', pastedImage);
+      const r = await fetch('/api/post', {method:'POST', headers:{'X-Admin-Secret': storage.secret}, body: fd});
+      if(!r.ok) throw new Error(await r.text());
+      await r.json();
       await loadPosts();
-      pTitle.value = pText.value = pUrl.value = pTags.value = '';
-      pFile.value = '';
+      pTitle.value = pText.value = pTags.value = '';
+      pastedImage = null;
       toast('Post created.');
     }catch(e){ toast('Create failed: ' + e); }
   }
 
-  async function handleUploadPhoto(){
-    try{
-      const f = pFile.files[0];
-      if(!f) return toast('Choose a file first.');
-      const up = await uploadFile(f);
-      pUrl.value = up.url;
-      toast('Uploaded. URL set.');
-    }catch(e){ toast('Upload failed: ' + e); }
-  }
-
   createBtn.onclick = handleCreatePost;
-  $('#upload-photo').onclick = handleUploadPhoto;
 
   // ====== Loaders ======
   async function loadSite(){
