@@ -158,17 +158,53 @@ def api_update_site():
 def api_create_post():
     if not require_admin(request):
         return make_response(("Unauthorized", 401))
-    p = request.get_json(force=True, silent=True) or {}
-    # minimal validation
-    if p.get("type") not in ("photo", "video", "text", "link"):
-        return jsonify({"error":"Invalid type"}), 400
-    p.setdefault("id", f"p-{int(time.time()*1000)}")
-    p.setdefault("date", time.strftime("%Y-%m-%d"))
-    p.setdefault("tags", [])
+
+    # Accept multipart form so image files can be sent directly with the post
+    if request.content_type and request.content_type.startswith("multipart/form-data"):
+        form = request.form
+        file = request.files.get("file")
+    else:
+        form = request.get_json(force=True, silent=True) or {}
+        file = None
+    title = (form.get("title") or "").strip()
+    text  = (form.get("text") or "").strip()
+    tags_raw = form.get("tags") or ""
+    tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
+
+    url = None
+    ptype = "text"
+
+    if file:
+        filename = secure_filename(file.filename or f"upload-{int(time.time()*1000)}")
+        save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(save_path)
+        url = f"/static/uploads/{filename}"
+        ptype = "photo"
+    else:
+        # Look for a URL in the text
+        m = re.search(r"https?://\S+", text)
+        if m:
+            url = m.group(0)
+            text = text.replace(url, "").strip()
+            if is_youtube(url):
+                ptype = "video"
+            else:
+                ptype = "link"
+
+    post = {
+        "id": f"p-{int(time.time()*1000)}",
+        "date": time.strftime("%Y-%m-%d"),
+        "tags": tags,
+        "title": title or None,
+        "text": text or None,
+        "url": url,
+        "type": ptype,
+    }
+
     posts = load_posts()
-    posts.insert(0, p)
+    posts.insert(0, post)
     save_posts(posts)
-    return jsonify({"ok": True, "post": p})
+    return jsonify({"ok": True, "post": post})
 
 @app.route("/api/post/<pid>", methods=["PUT"])
 def api_update_post(pid):
