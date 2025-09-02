@@ -52,25 +52,34 @@ body {
   align-items: center;
   gap: 12px;
 }
-#btn-new-post {
+#btn-new-post, #btn-home {
   background: var(--brand);
   border: none;
   color: #000;
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
 }
 .user-menu { position: relative; }
 .user-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   background: transparent;
-  border: none;
-  color: var(--text);
+  border: 2px solid transparent;
+  padding: 2px;
+  border-radius: 50%;
   cursor: pointer;
+  transition: border-color .2s;
 }
-.user-btn img { width: 32px; height: 32px; border-radius: 50%; }
+.user-btn:hover {
+  border-color: var(--brand);
+}
+.user-btn img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: block;
+}
 .dropdown {
   position: absolute;
   right: 0;

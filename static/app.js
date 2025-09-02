@@ -334,7 +334,7 @@ function renderAuthBar() {
     const avatar = currentUser.avatar || "/static/discord.svg";
     authBar.innerHTML = `
       <div class="user-menu">
-        <button id="user-btn" class="user-btn"><img src="${avatar}" alt=""/><span>${currentUser.name}</span></button>
+        <button id="user-btn" class="user-btn"><img src="${avatar}" alt=""/></button>
         <div id="user-menu-dropdown" class="dropdown hidden">
           <a href="/?user=${currentUser.id}">Profile</a>
           ${currentUser.is_admin ? '<a href="/admin">Admin</a>' : ''}
