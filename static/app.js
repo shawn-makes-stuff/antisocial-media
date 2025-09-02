@@ -480,23 +480,23 @@ function openPost(post) {
       text.innerHTML = renderMarkdown(c.text);
       body.appendChild(meta);
       body.appendChild(text);
+      const repliesEl = document.createElement('div');
+      repliesEl.className = 'replies';
       if (currentUser) {
         const replyBtn = document.createElement("button");
         replyBtn.type = 'button';
         replyBtn.className = 'reply-btn';
         replyBtn.textContent = 'Reply';
         replyBtn.addEventListener('click', () => {
-          if (item.querySelector('form.reply-form')) return;
+          if (repliesEl.querySelector('form.reply-form')) return;
           const f = buildCommentForm(c.id);
           f.classList.add('reply-form');
-          item.appendChild(f);
+          repliesEl.prepend(f);
         });
         body.appendChild(replyBtn);
       }
       item.appendChild(avatar);
       item.appendChild(body);
-      const repliesEl = document.createElement('div');
-      repliesEl.className = 'replies';
       item.appendChild(repliesEl);
       container.appendChild(item);
       renderComments(c.replies || [], repliesEl);

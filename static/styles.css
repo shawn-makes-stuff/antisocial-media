@@ -464,12 +464,9 @@ body {
   margin: 0 0 4px 0;
 }
 .comment {
-  background: var(--panel);
-  border: 1px solid #1b2430;
-  border-radius: 10px;
-  padding: 8px 10px;
   display: flex;
   gap: 10px;
+  align-items: flex-start;
 }
 .comment-avatar {
   width: 32px;
@@ -477,14 +474,22 @@ body {
   border-radius: 50%;
   object-fit: cover;
 }
-.comment-content { flex: 1; }
+.comment-content {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid #1b2430;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
 .comment-meta {
   color: var(--brand);
   font-weight: 600;
   margin-bottom: 4px;
 }
 .replies {
-  margin-left: 40px;
+  margin-left: 20px;
+  border-left: 2px solid #1b2430;
+  padding-left: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
