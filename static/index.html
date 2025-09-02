@@ -55,12 +55,18 @@
             <h2 class="title" data-role="title"></h2>
             <span class="date muted" data-role="date"></span>
           </div>
-          <div class="muted author" data-role="author"></div>
+          <div class="author-row">
+            <img class="avatar" data-role="avatar" alt=""/>
+            <span class="muted author" data-role="author"></span>
+          </div>
           <p class="desc" data-role="desc"></p>
           <div class="tags" data-role="tags"></div>
-        <div class="muted comment-count" data-role="comment-count"></div>
-      </div>
-    </article>
+          <div class="muted meta">
+            <span class="like-count" data-role="like-count"></span>
+            <span class="comment-count" data-role="comment-count"></span>
+          </div>
+        </div>
+      </article>
     </template>
   </main>
 
@@ -112,7 +118,7 @@
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal__backdrop" data-close></div>
     <div class="modal__content">
-      <button class="modal__close" aria-label="Close" data-close>✕</button>
+      <div class="modal__header"><button class="modal__close" aria-label="Close" data-close>✕</button></div>
       <div id="modal-body"></div>
     </div>
   </div>

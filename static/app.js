@@ -160,14 +160,29 @@ function renderCard(post) {
   const date = node.querySelector('[data-role="date"]');
   const tags = node.querySelector('[data-role="tags"]');
   const authorEl = node.querySelector('[data-role="author"]');
+  const avatarEl = node.querySelector('[data-role="avatar"]');
   const commentEl = node.querySelector('[data-role="comment-count"]');
+  const likeEl = node.querySelector('[data-role="like-count"]');
 
   date.textContent = fmtDate(post.date);
   title.textContent = post.title || "";
   if (!post.title) title.style.display = "none";
 
-  authorEl.textContent = post.user ? `by ${post.user.name}` : "";
-  commentEl.textContent = `${post.comment_count || 0} comments`;
+  if (post.user) {
+    authorEl.textContent = post.user.name;
+    if (post.user.avatar) {
+      avatarEl.src = post.user.avatar;
+      avatarEl.style.display = "block";
+    } else {
+      avatarEl.style.display = "none";
+    }
+  } else {
+    authorEl.textContent = "";
+    avatarEl.style.display = "none";
+  }
+
+  likeEl.textContent = `❤ ${post.like_count || 0}`;
+  commentEl.textContent = `💬 ${post.comment_count || 0}`;
 
   // Description (truncated by CSS)
   desc.textContent = post.text || post.description || "";

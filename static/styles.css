@@ -475,11 +475,15 @@ body {
   background: transparent;
 }
 
+.modal__header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 12px 0 12px;
+}
+
 .modal__close {
-  position: absolute; top: 10px; right: 12px;
   background: #0c1320; color: #cfe2ff; border: 1px solid #1b2430; border-radius: 999px;
   padding: 4px 8px; cursor: pointer;
-  z-index: 3;
 }
 
 .modal__title {
@@ -492,7 +496,7 @@ body {
 }
 
 #modal-body {
-  padding: 20px;
+  padding: 10px 20px 20px;
   display: grid;
   gap: 12px;
 }
@@ -542,7 +546,32 @@ body {
   height: 20px;
 }
 .author { font-size: 14px; }
-.comment-count { font-size: 14px; margin-top: 4px; }
+.author-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.author-row .avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.meta {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.meta span { display: flex; align-items: center; gap: 4px; }
+
+.like-count { color: #ff80aa; }
+
+.comment-count { font-size: 14px; }
 
 
 /* New post form (shared with admin) */
