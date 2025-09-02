@@ -56,9 +56,10 @@ def save_posts(posts):
 
 def load_site():
     return load_json(SITE_FILE, {
-        "title": "Shawn",
-        "description": "Senior Technical Product Specialist. Sharing photos, notes, videos, and interesting links.",
-        "avatar": "/static/me.jpg"
+        "title": "Antisocial",
+        "logo": None,
+        "favicon": None,
+        "tab_text": "Antisocial",
     })
 
 def save_site(site):
@@ -307,7 +308,7 @@ def api_update_site():
         return make_response(("Unauthorized", 401))
     body = request.get_json(force=True, silent=True) or {}
     site = load_site()
-    for k in ["title", "description", "avatar"]:
+    for k in ["title", "logo", "favicon", "tab_text"]:
         if k in body:
             site[k] = body[k]
     save_site(site)

@@ -30,10 +30,13 @@
 
   // ====== DOM elements ======
   const siteTitle   = $('#site-title');
-  const siteDesc    = $('#site-desc');
-  const siteAvatar  = $('#site-avatar');
-  const avatarFile  = $('#avatar-file');
-  const uploadAvatarBtn = $('#upload-avatar');
+  const siteTab     = $('#site-tab');
+  const siteLogo    = $('#site-logo');
+  const siteFavicon = $('#site-favicon');
+  const logoFile    = $('#logo-file');
+  const faviconFile = $('#favicon-file');
+  const uploadLogoBtn = $('#upload-logo');
+  const uploadFaviconBtn = $('#upload-favicon');
 
   const pTitle = $('#p-title');
   const pText  = $('#p-text');
@@ -213,25 +216,37 @@
     try{
       await putJSON('/api/site', {
         title: siteTitle.value.trim(),
-        description: siteDesc.value.trim(),
-        avatar: siteAvatar.value.trim()
+        tab_text: siteTab.value.trim(),
+        logo: siteLogo.value.trim(),
+        favicon: siteFavicon.value.trim()
       });
-      toast('Profile saved.');
+      toast('Site saved.');
     }catch(e){ toast('Save failed: ' + e); }
   }
 
-  async function handleUploadAvatar(){
+  async function handleUploadLogo(){
     try{
-      const f = avatarFile.files[0];
+      const f = logoFile.files[0];
       if(!f) return toast('Choose a file first.');
       const up = await uploadFile(f);
-      siteAvatar.value = up.url;
-      toast('Uploaded. Avatar URL set.');
+      siteLogo.value = up.url;
+      toast('Uploaded. Logo URL set.');
+    }catch(e){ toast('Upload failed: ' + e); }
+  }
+
+  async function handleUploadFavicon(){
+    try{
+      const f = faviconFile.files[0];
+      if(!f) return toast('Choose a file first.');
+      const up = await uploadFile(f);
+      siteFavicon.value = up.url;
+      toast('Uploaded. Favicon URL set.');
     }catch(e){ toast('Upload failed: ' + e); }
   }
 
   $('#save-site').onclick = handleSaveSite;
-  uploadAvatarBtn.onclick = handleUploadAvatar;
+  uploadLogoBtn.onclick = handleUploadLogo;
+  uploadFaviconBtn.onclick = handleUploadFavicon;
 
   // ====== Post creation handlers ======
   let attachedImages = [];
@@ -328,9 +343,10 @@
   // ====== Loaders ======
   async function loadSite(){
     const site = await fetchJSON('/api/site');
-    siteTitle.value = site.title || '';
-    siteDesc.value  = site.description || '';
-    siteAvatar.value= site.avatar || '';
+    siteTitle.value   = site.title || '';
+    siteTab.value     = site.tab_text || '';
+    siteLogo.value    = site.logo || '';
+    siteFavicon.value = site.favicon || '';
   }
 
   async function loadPosts(){

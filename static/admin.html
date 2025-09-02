@@ -131,19 +131,27 @@
 
     <!-- Collapsed by default -->
     <details class="panel collapsible" id="site-panel">
-      <summary><h2>Site Profile</h2> <span class="muted">— title, description, avatar</span></summary>
+      <summary><h2>Site</h2> <span class="muted">— logo, favicon, title</span></summary>
       <div class="content">
         <div class="row"><label>Title</label><input id="site-title" type="text"/></div>
-        <div class="row"><label>Description</label><textarea id="site-desc"></textarea></div>
+        <div class="row"><label>Tab Text</label><input id="site-tab" type="text"/></div>
         <div class="row">
-          <label>Avatar URL</label>
+          <label>Logo URL</label>
           <div class="flex">
-            <input id="site-avatar" type="text" placeholder="/static/me.jpg or https://…"/>
-            <input id="avatar-file" type="file" accept="image/*"/>
-            <button class="btn" id="upload-avatar">Upload & use</button>
+            <input id="site-logo" type="text" placeholder="/static/logo.png or https://…"/>
+            <input id="logo-file" type="file" accept="image/*"/>
+            <button class="btn" id="upload-logo">Upload & use</button>
           </div>
         </div>
-        <button class="btn" id="save-site">Save Profile</button>
+        <div class="row">
+          <label>Favicon URL</label>
+          <div class="flex">
+            <input id="site-favicon" type="text" placeholder="/static/favicon.ico or https://…"/>
+            <input id="favicon-file" type="file" accept="image/*"/>
+            <button class="btn" id="upload-favicon">Upload & use</button>
+          </div>
+        </div>
+        <button class="btn" id="save-site">Save Site</button>
       </div>
     </details>
 

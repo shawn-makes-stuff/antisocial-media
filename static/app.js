@@ -9,7 +9,8 @@ const state = {
   type: "all",
   tag: null,
   dateFrom: null,
-  dateTo: null
+  dateTo: null,
+  user: null,
 };
 
 // ---------- cached DOM references ----------
@@ -25,16 +26,15 @@ const year = $("#year");
 const authBar = $("#auth-bar");
 const newPostBtn = $("#btn-new-post");
 
+const siteLogo = $("#site-logo");
+const siteTitleEl = $("#site-title");
+const footerTitle = $("#footer-title");
+
 let currentUser = null;
 
 const dateFromInput = $("#date-from");
 const dateToInput = $("#date-to");
 const dateClearBtn = $("#date-clear");
-
-// intro elements (filled from /api/site)
-const introTitle = document.querySelector(".profile-section .intro h1");
-const introDesc = document.querySelector(".profile-section .intro .muted");
-const introAvatar = document.querySelector(".profile-section .intro .avatar");
 
 year.textContent = new Date().getFullYear();
 
@@ -304,7 +304,9 @@ function matchesFilters(p) {
     }
   }
 
-  return inQuery && typeOk && tagOk && dateOk;
+  const userOk = !state.user || p.user_id === state.user;
+
+  return inQuery && typeOk && tagOk && dateOk && userOk;
 }
 
 // Render filtered posts
@@ -331,12 +333,22 @@ function renderAuthBar() {
   if (currentUser) {
     const avatar = currentUser.avatar || "/static/discord.svg";
     authBar.innerHTML = `
-      <span class="user-info">
-        <img src="${avatar}" alt="" />
-        <span>${currentUser.name}</span>
-        <a href="/logout">Logout</a>
-      </span>`;
-    newPostBtn.style.display = "block";
+      <div class="user-menu">
+        <button id="user-btn" class="user-btn"><img src="${avatar}" alt=""/><span>${currentUser.name}</span></button>
+        <div id="user-menu-dropdown" class="dropdown hidden">
+          <a href="/?user=${currentUser.id}">Profile</a>
+          ${currentUser.is_admin ? '<a href="/admin">Admin</a>' : ''}
+          <a href="/logout">Logout</a>
+        </div>
+      </div>`;
+    newPostBtn.style.display = "inline-block";
+    const btn = $("#user-btn");
+    const menu = $("#user-menu-dropdown");
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+    });
+    document.addEventListener("click", () => menu.classList.add("hidden"));
   } else {
     authBar.innerHTML = `<a class="login-btn" href="/login"><img src="/static/discord.svg" alt="">Login with Discord</a>`;
     newPostBtn.style.display = "none";
@@ -746,10 +758,19 @@ async function main() {
       fetchJSON("/api/posts"),
       fetchJSON("/api/me"),
     ]);
+    siteTitleEl.textContent = site.title || "";
+    footerTitle.textContent = site.title || "";
+    if (site.logo) {
+      siteLogo.src = site.logo;
+    } else {
+      siteLogo.style.display = "none";
+    }
+    document.title = site.tab_text || site.title || document.title;
+    const fav = $("#site-favicon");
+    if (fav && site.favicon) fav.href = site.favicon;
 
-    introTitle.textContent = site.title || "Shawn";
-    introDesc.textContent = site.description || "";
-    introAvatar.src = site.avatar || "/static/me.jpg";
+    const params = new URLSearchParams(location.search);
+    state.user = params.get("user");
 
     currentUser = me.user;
     renderAuthBar();
