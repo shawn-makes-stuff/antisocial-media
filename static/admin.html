@@ -63,6 +63,23 @@
       cursor: pointer;
     }
     .sugg-chip:hover{ border-color: #2a3e56; }
+
+    /* Toast notifications */
+    #toast{
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0e1420;
+      border: 1px solid #1b2430;
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+    }
+    #toast.show{ opacity: 1; }
   </style>
 </head>
 <body>
@@ -105,6 +122,8 @@
         <h2>New Post</h2>
         <div class="row"><label>Title</label><input id="p-title" type="text"/></div>
         <div class="row"><label>Description</label><textarea id="p-text" placeholder="Write something, paste a link, or paste an image"></textarea></div>
+        <div class="row"><label>Image</label><input id="p-image" type="file" accept="image/*"/></div>
+        <div class="row" id="p-preview-row" style="display:none;"><label>Preview</label><img id="p-preview" alt="preview" style="max-height:200px; max-width:100%;"/></div>
         <div class="row">
           <label>Tags</label>
           <div>
@@ -126,6 +145,8 @@
       </div>
     </div>
   </div>
+
+  <div id="toast"></div>
 
   <script src="/static/admin.js" defer></script>
 </body>

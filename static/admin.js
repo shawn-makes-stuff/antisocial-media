@@ -17,10 +17,15 @@
   const $  = (s, r=document)=>r.querySelector(s);
   const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
 
-  /** Display a simple alert + log for admin feedback. */
+  /** Display a toast message within the app for admin feedback. */
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
   function toast(msg){
     console.log(msg);
-    alert(msg);
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 3000);
   }
 
   // ====== DOM elements ======
@@ -34,6 +39,9 @@
   const pText  = $('#p-text');
   const pTags  = $('#p-tags');
   const pTagsSuggest = $('#p-tags-suggest');
+  const pImage = $('#p-image');
+  const pPreview = $('#p-preview');
+  const pPreviewRow = $('#p-preview-row');
   const createBtn = $('#create-post');
 
   const postsTableBody = $('#posts-table tbody');
@@ -226,15 +234,38 @@
   uploadAvatarBtn.onclick = handleUploadAvatar;
 
   // ====== Post creation handlers ======
-  let pastedImage = null;
+  let attachedImage = null;
+
+  function showPreview(file){
+    pPreview.src = URL.createObjectURL(file);
+    pPreviewRow.style.display = '';
+  }
+
+  function clearPreview(){
+    pPreview.src = '';
+    pPreviewRow.style.display = 'none';
+  }
 
   pText.addEventListener('paste', (e)=>{
     const files = Array.from(e.clipboardData?.files || []);
     const img = files.find(f=>f.type.startsWith('image/'));
     if(img){
-      pastedImage = img;
+      attachedImage = img;
+      pImage.value = '';
+      showPreview(img);
       toast('Image attached.');
       e.preventDefault();
+    }
+  });
+
+  pImage.addEventListener('change', ()=>{
+    const f = pImage.files[0];
+    if(f && f.type.startsWith('image/')){
+      attachedImage = f;
+      showPreview(f);
+    }else{
+      attachedImage = null;
+      clearPreview();
     }
   });
 
@@ -244,13 +275,15 @@
       fd.append('title', pTitle.value.trim());
       fd.append('text',  pText.value.trim());
       fd.append('tags',  splitTags(pTags.value).join(','));
-      if(pastedImage) fd.append('file', pastedImage);
+      if(attachedImage) fd.append('file', attachedImage);
       const r = await fetch('/api/post', {method:'POST', headers:{'X-Admin-Secret': storage.secret}, body: fd});
       if(!r.ok) throw new Error(await r.text());
       await r.json();
       await loadPosts();
       pTitle.value = pText.value = pTags.value = '';
-      pastedImage = null;
+      pImage.value = '';
+      attachedImage = null;
+      clearPreview();
       toast('Post created.');
     }catch(e){ toast('Create failed: ' + e); }
   }
