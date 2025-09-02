@@ -328,7 +328,13 @@ async function refreshPosts() {
 
 function renderAuthBar() {
   if (currentUser) {
-    authBar.innerHTML = `Logged in as ${currentUser.name} <a href="/logout">Logout</a>`;
+    const avatar = currentUser.avatar || "/static/discord.svg";
+    authBar.innerHTML = `
+      <span class="user-info">
+        <img src="${avatar}" alt="" />
+        <span>${currentUser.name}</span>
+        <a href="/logout">Logout</a>
+      </span>`;
     newPostBtn.style.display = "block";
   } else {
     authBar.innerHTML = `<a class="login-btn" href="/login"><img src="/static/discord.svg" alt="">Login with Discord</a>`;
@@ -425,34 +431,27 @@ function openPost(post) {
   `;
   modalBody.appendChild(meta);
 
-  if (post.comments && post.comments.length) {
-    const wrap = document.createElement("div");
-    wrap.className = "comments";
-    post.comments.forEach(c => {
-      const d = document.createElement("div");
-      d.className = "comment";
-      d.innerHTML = `<strong>${c.user ? c.user.name : 'Anon'}:</strong> ${renderMarkdown(c.text)}`;
-      wrap.appendChild(d);
-    });
-    modalBody.appendChild(wrap);
-  }
+  const commentsWrap = document.createElement("div");
+  commentsWrap.className = "comments";
 
-  if (currentUser) {
+  function buildCommentForm(parentId) {
     const form = document.createElement("form");
     form.className = "comment-form";
     const ta = document.createElement("textarea");
     ta.required = true;
     const btn = document.createElement("button");
-    btn.textContent = "Comment";
+    btn.textContent = parentId ? "Reply" : "Comment";
     form.appendChild(ta);
     form.appendChild(btn);
     form.addEventListener("submit", async e => {
       e.preventDefault();
       try {
+        const payload = { text: ta.value };
+        if (parentId) payload.parent = parentId;
         await fetch(`/api/post/${post.id}/comment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: ta.value })
+          body: JSON.stringify(payload)
         });
         await refreshPosts();
         closeModal();
@@ -460,7 +459,57 @@ function openPost(post) {
         alert('Failed to comment: ' + err.message);
       }
     });
-    modalBody.appendChild(form);
+    return form;
+  }
+
+  function renderComments(list, container) {
+    list.forEach(c => {
+      const item = document.createElement("div");
+      item.className = "comment";
+      const avatar = document.createElement("img");
+      avatar.className = "comment-avatar";
+      avatar.src = c.user && c.user.avatar ? c.user.avatar : "/static/discord.svg";
+      avatar.alt = '';
+      const body = document.createElement("div");
+      body.className = "comment-content";
+      const meta = document.createElement("div");
+      meta.className = "comment-meta";
+      meta.textContent = c.user ? c.user.name : 'Anon';
+      const text = document.createElement("div");
+      text.className = "comment-text md";
+      text.innerHTML = renderMarkdown(c.text);
+      body.appendChild(meta);
+      body.appendChild(text);
+      if (currentUser) {
+        const replyBtn = document.createElement("button");
+        replyBtn.type = 'button';
+        replyBtn.className = 'reply-btn';
+        replyBtn.textContent = 'Reply';
+        replyBtn.addEventListener('click', () => {
+          if (item.querySelector('form.reply-form')) return;
+          const f = buildCommentForm(c.id);
+          f.classList.add('reply-form');
+          item.appendChild(f);
+        });
+        body.appendChild(replyBtn);
+      }
+      item.appendChild(avatar);
+      item.appendChild(body);
+      const repliesEl = document.createElement('div');
+      repliesEl.className = 'replies';
+      item.appendChild(repliesEl);
+      container.appendChild(item);
+      renderComments(c.replies || [], repliesEl);
+    });
+  }
+
+  if (post.comments && post.comments.length) {
+    renderComments(post.comments, commentsWrap);
+  }
+  modalBody.appendChild(commentsWrap);
+
+  if (currentUser) {
+    modalBody.appendChild(buildCommentForm(null));
   }
 }
 

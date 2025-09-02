@@ -143,11 +143,20 @@ def callback():
     users = load_users()
     uid = info.get("id")
     name = info.get("username")
+    avatar_hash = info.get("avatar")
+    avatar_url = (
+        f"https://cdn.discordapp.com/avatars/{uid}/{avatar_hash}.png?size=64"
+        if avatar_hash
+        else None
+    )
     user = next((u for u in users if u.get("id") == uid), None)
     if not user:
-        user = {"id": uid, "name": name, "is_admin": False}
+        user = {"id": uid, "name": name, "avatar": avatar_url, "is_admin": False}
         users.append(user)
-        save_users(users)
+    else:
+        user["name"] = name
+        user["avatar"] = avatar_url
+    save_users(users)
     session["uid"] = uid
     return redirect("/")
 
@@ -163,15 +172,31 @@ def logout():
 def api_posts():
     posts = load_posts()
     users = {u["id"]: u for u in load_users()}
+
+    def attach_user(comments):
+        for c in comments:
+            uid = c.get("user_id")
+            if uid and uid in users:
+                cu = users[uid]
+                c["user"] = {
+                    "id": uid,
+                    "name": cu.get("name"),
+                    "avatar": cu.get("avatar"),
+                }
+            attach_user(c.get("replies", []))
+
+    def count_comments(comments):
+        return sum(1 + count_comments(c.get("replies", [])) for c in comments)
+
     for p in posts:
         uid = p.get("user_id")
         if uid and uid in users:
-            p["user"] = {"id": uid, "name": users[uid]["name"]}
-        p["comment_count"] = len(p.get("comments", []))
-        for c in p.get("comments", []):
-            cu = users.get(c.get("user_id"))
-            if cu:
-                c["user"] = {"id": cu["id"], "name": cu["name"]}
+            uu = users[uid]
+            p["user"] = {"id": uid, "name": uu.get("name"), "avatar": uu.get("avatar")}
+        comments = p.get("comments", [])
+        p["comment_count"] = count_comments(comments)
+        attach_user(comments)
+
     return jsonify({"posts": posts})
 
 
@@ -391,17 +416,33 @@ def api_post_comment(pid):
     text = (body.get("text") or "").strip()
     if not text:
         return make_response(("Missing text", 400))
+    parent_id = body.get("parent") or body.get("parent_id")
     posts = load_posts()
     for i, post in enumerate(posts):
         if post.get("id") == pid:
-            comments = post.setdefault("comments", [])
+            def find_comment(comments, cid):
+                for c in comments:
+                    if c.get("id") == cid:
+                        return c
+                    found = find_comment(c.get("replies", []), cid)
+                    if found:
+                        return found
+                return None
+
             comment = {
                 "id": f"c-{int(time.time()*1000)}",
                 "user_id": user["id"],
                 "text": text,
                 "date": time.strftime("%Y-%m-%d"),
+                "replies": [],
             }
-            comments.append(comment)
+            if parent_id:
+                parent = find_comment(post.setdefault("comments", []), parent_id)
+                if not parent:
+                    return jsonify({"error": "parent not found"}), 404
+                parent.setdefault("replies", []).append(comment)
+            else:
+                post.setdefault("comments", []).append(comment)
             posts[i] = post
             save_posts(posts)
             return jsonify({"ok": True, "comment": comment})
