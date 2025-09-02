@@ -136,7 +136,9 @@ def api_upload():
     file = request.files["file"]
     if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
-    filename = secure_filename(file.filename)
+    orig = secure_filename(file.filename or "")
+    ext = os.path.splitext(orig)[1] or ""
+    filename = f"upload-{int(time.time()*1000)}{ext}"
     save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(save_path)
     url = f"/static/uploads/{filename}"
@@ -185,7 +187,9 @@ def api_create_post():
 
     if files:
         for i, file in enumerate(files):
-            filename = secure_filename(file.filename or f"upload-{int(time.time()*1000)}-{i}")
+            orig = secure_filename(file.filename or "")
+            ext = os.path.splitext(orig)[1] or ""
+            filename = f"upload-{int(time.time()*1000)}-{i}{ext}"
             save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
             file.save(save_path)
             urls.append(f"/static/uploads/{filename}")
