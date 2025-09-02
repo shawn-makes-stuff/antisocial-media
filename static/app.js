@@ -357,7 +357,8 @@ function renderAuthBar() {
 
 function openNewPost() {
   modal.classList.remove("hidden");
-  modalContent.style.width = "700px";
+  modalContent.classList.add("new-post-modal");
+  modalContent.style.width = "";
   modalBody.innerHTML = $("#new-post-tpl").innerHTML;
 
   const pTitle = $("#p-title");
@@ -523,6 +524,7 @@ function updateTypeChips() {
 function openPost(post) {
   modal.classList.remove("hidden");
   modalContent.style.width = "";
+  modalContent.classList.remove("new-post-modal");
   modalBody.innerHTML = "";
 
   if (post.type === "photo") {
@@ -702,6 +704,7 @@ function closeModal() {
   modalBody.innerHTML = ""; // ensure playback stops
   modal.classList.add("hidden");
   modalContent.style.width = "";
+  modalContent.classList.remove("new-post-modal");
 }
 
 // ---------- event binding ----------

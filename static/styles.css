@@ -44,6 +44,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  text-decoration: none;
+  color: inherit;
 }
 .logo-wrap h1 { margin: 0; font-size: 24px; }
 .logo { height: 48px; }
@@ -52,7 +54,7 @@ body {
   align-items: center;
   gap: 12px;
 }
-#btn-new-post, #btn-home {
+#btn-new-post {
   background: var(--brand);
   border: none;
   color: #000;
@@ -395,6 +397,14 @@ body {
   flex-direction: column;
 }
 
+.modal__content.new-post-modal {
+  width: min(700px, 96vw);
+}
+
+.modal__content.new-post-modal textarea {
+  min-height: 120px;
+}
+
 .modal__close {
   position: absolute; top: 10px; right: 12px;
   background: #0c1320; color: #cfe2ff; border: 1px solid #1b2430; border-radius: 999px;
@@ -476,7 +486,7 @@ input[type="text"], textarea, select {
   color: var(--text);
   padding:8px 10px;
 }
-textarea { min-height:120px; }
+textarea { min-height:90px; }
 .btn {
   background: var(--chip);
   border:1px solid #2a3646;
