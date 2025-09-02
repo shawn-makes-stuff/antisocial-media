@@ -40,9 +40,8 @@
   const pTags  = $('#p-tags');
   const pTagsSuggest = $('#p-tags-suggest');
   const pImage = $('#p-image');
-  const pPreview = $('#p-preview');
+  const pPreviewWrap = $('#p-preview-wrap');
   const pPreviewRow = $('#p-preview-row');
-  const pClearImage = $('#p-clear-image');
   const createBtn = $('#create-post');
 
   const postsTableBody = $('#posts-table tbody');
@@ -235,47 +234,59 @@
   uploadAvatarBtn.onclick = handleUploadAvatar;
 
   // ====== Post creation handlers ======
-  let attachedImage = null;
+  let attachedImages = [];
 
-  function showPreview(file){
-    pPreview.src = URL.createObjectURL(file);
-    pPreviewRow.style.display = '';
-  }
-
-  function clearPreview(){
-    if(pPreview.src) URL.revokeObjectURL(pPreview.src);
-    pPreview.src = '';
-    pPreviewRow.style.display = 'none';
+  function addFiles(files){
+    files.forEach(f=>{
+      if(!f.type.startsWith('image/')) return;
+      const url = URL.createObjectURL(f);
+      attachedImages.push({file: f, url});
+      const item = document.createElement('div');
+      item.className = 'preview-item';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'preview';
+      item.appendChild(img);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '✖';
+      btn.addEventListener('click', ()=>{
+        const idx = attachedImages.findIndex(ai=>ai.file===f);
+        if(idx>-1){
+          URL.revokeObjectURL(attachedImages[idx].url);
+          attachedImages.splice(idx,1);
+        }
+        item.remove();
+        if(attachedImages.length===0){
+          pPreviewRow.style.display='none';
+        }
+        toast('Image removed.');
+      });
+      item.appendChild(btn);
+      pPreviewWrap.appendChild(item);
+    });
+    if(attachedImages.length>0){
+      pPreviewRow.style.display='';
+    }
   }
 
   pText.addEventListener('paste', (e)=>{
-    const files = Array.from(e.clipboardData?.files || []);
-    const img = files.find(f=>f.type.startsWith('image/'));
-    if(img){
-      attachedImage = img;
-      pImage.value = '';
-      showPreview(img);
-      toast('Image attached.');
+    const imgs = Array.from(e.clipboardData?.files || []).filter(f=>f.type.startsWith('image/'));
+    if(imgs.length){
+      addFiles(imgs);
+      pImage.value='';
+      toast(imgs.length>1 ? 'Images attached.' : 'Image attached.');
       e.preventDefault();
     }
   });
 
   pImage.addEventListener('change', ()=>{
-    const f = pImage.files[0];
-    if(f && f.type.startsWith('image/')){
-      attachedImage = f;
-      showPreview(f);
-    }else{
-      attachedImage = null;
-      clearPreview();
+    const imgs = Array.from(pImage.files).filter(f=>f.type.startsWith('image/'));
+    if(imgs.length){
+      addFiles(imgs);
+      pImage.value='';
+      toast(imgs.length>1 ? 'Images attached.' : 'Image attached.');
     }
-  });
-
-  pClearImage.addEventListener('click', ()=>{
-    attachedImage = null;
-    pImage.value = '';
-    clearPreview();
-    toast('Image removed.');
   });
 
   async function handleCreatePost(){
@@ -284,15 +295,17 @@
       fd.append('title', pTitle.value.trim());
       fd.append('text',  pText.value.trim());
       fd.append('tags',  splitTags(pTags.value).join(','));
-      if(attachedImage) fd.append('file', attachedImage);
+      attachedImages.forEach(ai=> fd.append('files', ai.file));
       const r = await fetch('/api/post', {method:'POST', headers:{'X-Admin-Secret': storage.secret}, body: fd});
       if(!r.ok) throw new Error(await r.text());
       await r.json();
       await loadPosts();
       pTitle.value = pText.value = pTags.value = '';
       pImage.value = '';
-      attachedImage = null;
-      clearPreview();
+      attachedImages.forEach(ai=> URL.revokeObjectURL(ai.url));
+      attachedImages = [];
+      pPreviewWrap.innerHTML = '';
+      pPreviewRow.style.display = 'none';
       toast('Post created.');
     }catch(e){ toast('Create failed: ' + e); }
   }

@@ -81,9 +81,21 @@
     }
     #toast.show{ opacity: 1; }
 
-    /* Image preview with removable option */
-    #p-preview-wrap{ position: relative; display: inline-block; }
-    #p-clear-image{
+    /* Image previews */
+    #p-preview-wrap{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-self: start;
+      width: fit-content;
+    }
+    .preview-item{ position: relative; display: inline-block; }
+    .preview-item img{
+      max-height: 200px;
+      max-width: 100%;
+      display: block;
+    }
+    .preview-item button{
       position: absolute;
       top: 4px;
       right: 4px;
@@ -140,13 +152,10 @@
         <h2>New Post</h2>
         <div class="row"><label>Title</label><input id="p-title" type="text"/></div>
         <div class="row"><label>Description</label><textarea id="p-text" placeholder="Write something, paste a link, or paste an image"></textarea></div>
-        <div class="row"><label>Image</label><input id="p-image" type="file" accept="image/*"/></div>
+        <div class="row"><label>Images</label><input id="p-image" type="file" accept="image/*" multiple/></div>
         <div class="row" id="p-preview-row" style="display:none;">
           <label>Preview</label>
-          <div id="p-preview-wrap">
-            <img id="p-preview" alt="preview" style="max-height:200px; max-width:100%;"/>
-            <button type="button" id="p-clear-image" aria-label="Remove image">✖</button>
-          </div>
+          <div id="p-preview-wrap"></div>
         </div>
         <div class="row">
           <label>Tags</label>

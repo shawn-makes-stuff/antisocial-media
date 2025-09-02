@@ -162,23 +162,29 @@ def api_create_post():
     # Accept multipart form so image files can be sent directly with the post
     if request.content_type and request.content_type.startswith("multipart/form-data"):
         form = request.form
-        file = request.files.get("file")
+        files = request.files.getlist("files")
+        if not files:
+            f = request.files.get("file")
+            files = [f] if f else []
     else:
         form = request.get_json(force=True, silent=True) or {}
-        file = None
+        files = []
     title = (form.get("title") or "").strip()
     text  = (form.get("text") or "").strip()
     tags_raw = form.get("tags") or ""
     tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
 
     url = None
+    urls = []
     ptype = "text"
 
-    if file:
-        filename = secure_filename(file.filename or f"upload-{int(time.time()*1000)}")
-        save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(save_path)
-        url = f"/static/uploads/{filename}"
+    if files:
+        for i, file in enumerate(files):
+            filename = secure_filename(file.filename or f"upload-{int(time.time()*1000)}-{i}")
+            save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            file.save(save_path)
+            urls.append(f"/static/uploads/{filename}")
+        url = urls[0]
         ptype = "photo"
     else:
         # Look for a URL in the text
@@ -200,6 +206,8 @@ def api_create_post():
         "url": url,
         "type": ptype,
     }
+    if urls:
+        post["urls"] = urls
 
     posts = load_posts()
     posts.insert(0, post)
