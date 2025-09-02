@@ -23,7 +23,6 @@ const modal = $("#modal");
 const modalBody = $("#modal-body");
 const year = $("#year");
 
-const tagWrap = $("#tagbar-wrap");
 const tagToggle = $("#tag-toggle");
 const dateFromInput = $("#date-from");
 const dateToInput = $("#date-to");
@@ -121,10 +120,14 @@ function buildVideoThumb(id, title) {
 }
 
 // ---------- tag utilities ----------
+const TAG_LIMIT = 10;
 
 function applyTagCollapse() {
-  if (!tagWrap) return;
-  tagWrap.classList.toggle("collapsed", !state.tagsExpanded);
+  if (!tagBar) return;
+  const tags = $$(".chip", tagBar);
+  tags.forEach((btn, idx) => {
+    btn.style.display = state.tagsExpanded || idx < TAG_LIMIT ? "" : "none";
+  });
   if (tagToggle) {
     tagToggle.textContent = state.tagsExpanded ? "Less" : "More";
     tagToggle.setAttribute("aria-expanded", String(state.tagsExpanded));
@@ -149,8 +152,7 @@ function renderTagBar(allTags) {
     };
     tagBar.appendChild(btn);
   });
-  const chipH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--chip-h')) || 34;
-  const needToggle = tagBar.scrollHeight > chipH;
+  const needToggle = allTags.length > TAG_LIMIT;
   if (tagToggle) {
     tagToggle.style.display = needToggle ? "" : "none";
   }

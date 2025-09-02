@@ -108,16 +108,6 @@ body {
   font-size: 12px;
   white-space: nowrap;
 }
-.tagbar-wrap.collapsed .tags {
-  max-height: calc(var(--chip-h) + 4px);
-  overflow: hidden;
-  position: relative;
-  padding: 2px 0;
-  /* fade-out on the right to hint there’s more */
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 60px), transparent);
-          mask-image: linear-gradient(to right, black calc(100% - 60px), transparent);
-}
-
 /* Toggle button style */
 .chip-ghost {
   background: transparent;
