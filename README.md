@@ -1,13 +1,16 @@
 # antisocial-media  
-This is essentially a personal page with support for things like sharing photos, video links, text posts, and so on. Python in the backend.  
+This is essentially a simple social media page with support for things like sharing photos, video links, text posts, and so on.  
+Python in the backend, log in with discord to make comments and posts.  
   
-Install requirements, set password in:  
-terminal (windows)  
-$env:ADMIN_SECRET='change-me'  
-bash (linux)   
-export ADMIN_SECRET='change-me'  
+Install requirements:  
+Configure a discord application and set up oauth. Configure client id, client secret, and redirect URL there.  
+You will also need to enable the "identify" scope.  
   
-Run server.py  
-Navigate to localhost:5173/admin  
-configure password in the Auth section (no changes will be saved if this is incorrect or not set)  
-edit user details or create posts  
+Once you have configured your discord app, set enviroment variables accordingly:  
+setx DISCORD_CLIENT_ID "x"  
+setx DISCORD_CLIENT_SECRET "x"  
+setx DISCORD_REDIRECT_URI "http://localhost:5173/callback" //localhost is default, you will change this for your domain  
+python server.py  
+  
+Once you have successfully run the application and logged in with discord, locate your user in users.json  
+Change your user to is_admin true. //this will give your user access to the admin panel with various page settings  
