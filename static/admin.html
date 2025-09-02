@@ -63,6 +63,53 @@
       cursor: pointer;
     }
     .sugg-chip:hover{ border-color: #2a3e56; }
+
+    /* Toast notifications */
+    #toast{
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0e1420;
+      border: 1px solid #1b2430;
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+    }
+    #toast.show{ opacity: 1; }
+
+    /* Image previews */
+    #p-preview-wrap{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-self: start;
+      width: fit-content;
+    }
+    .preview-item{ position: relative; display: inline-block; }
+    .preview-item img{
+      max-height: 200px;
+      max-width: 100%;
+      display: block;
+    }
+    .preview-item button{
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: #0e1420;
+      border: 1px solid #1b2430;
+      color: var(--text);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      line-height: 18px;
+      text-align: center;
+      cursor: pointer;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
@@ -105,6 +152,11 @@
         <h2>New Post</h2>
         <div class="row"><label>Title</label><input id="p-title" type="text"/></div>
         <div class="row"><label>Description</label><textarea id="p-text" placeholder="Write something, paste a link, or paste an image"></textarea></div>
+        <div class="row"><label>Images</label><input id="p-image" type="file" accept="image/*" multiple/></div>
+        <div class="row" id="p-preview-row" style="display:none;">
+          <label>Preview</label>
+          <div id="p-preview-wrap"></div>
+        </div>
         <div class="row">
           <label>Tags</label>
           <div>
@@ -112,7 +164,7 @@
             <div class="tag-suggest" id="p-tags-suggest"></div>
           </div>
         </div>
-        <button class="btn" id="create-post">Create Post</button>
+        <button class="btn" type="button" id="create-post">Create Post</button>
       </div>
     </div>
 
@@ -126,6 +178,8 @@
       </div>
     </div>
   </div>
+
+  <div id="toast"></div>
 
   <script src="/static/admin.js" defer></script>
 </body>

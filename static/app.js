@@ -172,9 +172,10 @@ function renderCard(post) {
 
   // Thumbnail / media placeholder
   if (post.type === "photo") {
+    const src = (post.urls && post.urls[0]) || post.url;
     const img = new Image();
     img.loading = "lazy";
-    img.src = post.url;
+    img.src = src;
     img.alt = post.title || "photo";
     thumb.appendChild(img);
   } else if (post.type === "video") {
@@ -318,11 +319,14 @@ function openPost(post) {
   modalBody.innerHTML = "";
 
   if (post.type === "photo") {
-    const img = new Image();
-    img.src = post.url;
-    img.alt = post.title || "photo";
-    img.className = "modal__media";
-    modalBody.appendChild(img);
+    const urls = (post.urls && post.urls.length) ? post.urls : [post.url];
+    urls.forEach(u => {
+      const img = new Image();
+      img.src = u;
+      img.alt = post.title || "photo";
+      img.className = "modal__media";
+      modalBody.appendChild(img);
+    });
 
     if (post.text) {
       const cap = document.createElement("div");

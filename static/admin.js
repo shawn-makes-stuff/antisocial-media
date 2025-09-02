@@ -17,10 +17,15 @@
   const $  = (s, r=document)=>r.querySelector(s);
   const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
 
-  /** Display a simple alert + log for admin feedback. */
+  /** Display a toast message within the app for admin feedback. */
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
   function toast(msg){
     console.log(msg);
-    alert(msg);
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 3000);
   }
 
   // ====== DOM elements ======
@@ -34,6 +39,9 @@
   const pText  = $('#p-text');
   const pTags  = $('#p-tags');
   const pTagsSuggest = $('#p-tags-suggest');
+  const pImage = $('#p-image');
+  const pPreviewWrap = $('#p-preview-wrap');
+  const pPreviewRow = $('#p-preview-row');
   const createBtn = $('#create-post');
 
   const postsTableBody = $('#posts-table tbody');
@@ -190,11 +198,10 @@
     };
 
     tr.querySelector('.b-del').onclick = async ()=>{
-      if(!confirm('Delete this post?')) return;
       try{
         await del(`/api/post/${post.id}`);
         await loadPosts();
-        toast('Deleted.');
+        toast('Post deleted.');
       }catch(e){ toast('Delete failed: ' + e); }
     };
     return tr;
@@ -226,36 +233,96 @@
   uploadAvatarBtn.onclick = handleUploadAvatar;
 
   // ====== Post creation handlers ======
-  let pastedImage = null;
+  let attachedImages = [];
+
+  function addFiles(files){
+    files.forEach(f=>{
+      if(!f.type.startsWith('image/')) return;
+      const url = URL.createObjectURL(f);
+      attachedImages.push({file: f, url});
+      const item = document.createElement('div');
+      item.className = 'preview-item';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'preview';
+      item.appendChild(img);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '✖';
+      btn.addEventListener('click', ()=>{
+        const idx = attachedImages.findIndex(ai=>ai.file===f);
+        if(idx>-1){
+          URL.revokeObjectURL(attachedImages[idx].url);
+          attachedImages.splice(idx,1);
+        }
+        item.remove();
+        if(attachedImages.length===0){
+          pPreviewRow.style.display='none';
+        }
+        toast('Image removed.');
+      });
+      item.appendChild(btn);
+      pPreviewWrap.appendChild(item);
+    });
+    if(attachedImages.length>0){
+      pPreviewRow.style.display='';
+    }
+  }
 
   pText.addEventListener('paste', (e)=>{
-    const files = Array.from(e.clipboardData?.files || []);
-    const img = files.find(f=>f.type.startsWith('image/'));
-    if(img){
-      pastedImage = img;
-      toast('Image attached.');
+    const imgs = Array.from(e.clipboardData?.files || []).filter(f=>f.type.startsWith('image/'));
+    if(imgs.length){
+      addFiles(imgs);
+      pImage.value='';
+      toast(imgs.length>1 ? 'Images attached.' : 'Image attached.');
       e.preventDefault();
+    }
+  });
+
+  pImage.addEventListener('change', ()=>{
+    const imgs = Array.from(pImage.files).filter(f=>f.type.startsWith('image/'));
+    if(imgs.length){
+      addFiles(imgs);
+      pImage.value='';
+      toast(imgs.length>1 ? 'Images attached.' : 'Image attached.');
     }
   });
 
   async function handleCreatePost(){
     try{
-      const fd = new FormData();
-      fd.append('title', pTitle.value.trim());
-      fd.append('text',  pText.value.trim());
-      fd.append('tags',  splitTags(pTags.value).join(','));
-      if(pastedImage) fd.append('file', pastedImage);
-      const r = await fetch('/api/post', {method:'POST', headers:{'X-Admin-Secret': storage.secret}, body: fd});
+      let r;
+      if(attachedImages.length){
+        const fd = new FormData();
+        fd.append('title', pTitle.value.trim());
+        fd.append('text',  pText.value.trim());
+        fd.append('tags',  splitTags(pTags.value).join(','));
+        attachedImages.forEach(ai=> fd.append('files', ai.file));
+        r = await fetch('/api/post', {method:'POST', headers:{'X-Admin-Secret': storage.secret}, body: fd});
+      }else{
+        const body = {
+          title: pTitle.value.trim(),
+          text:  pText.value.trim(),
+          tags:  splitTags(pTags.value).join(',')
+        };
+        r = await fetch('/api/post', {method:'POST', headers: headers(), body: JSON.stringify(body)});
+      }
       if(!r.ok) throw new Error(await r.text());
       await r.json();
       await loadPosts();
       pTitle.value = pText.value = pTags.value = '';
-      pastedImage = null;
+      pImage.value = '';
+      attachedImages.forEach(ai=> URL.revokeObjectURL(ai.url));
+      attachedImages = [];
+      pPreviewWrap.innerHTML = '';
+      pPreviewRow.style.display = 'none';
       toast('Post created.');
     }catch(e){ toast('Create failed: ' + e); }
   }
 
-  createBtn.onclick = handleCreatePost;
+  createBtn.addEventListener('click', async (e)=>{
+    e.preventDefault();
+    await handleCreatePost();
+  });
 
   // ====== Loaders ======
   async function loadSite(){
