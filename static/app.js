@@ -373,20 +373,9 @@ function openNewPost() {
   const pPreviewWrap = $("#p-preview-wrap");
   const pPreviewRow = $("#p-preview-row");
   const createBtn = $("#create-post");
-  const saveDraftBtn = $("#save-draft");
   const mdSwitch = $("#md-switch");
 
   const allTags = Array.from(new Set(state.posts.flatMap(p => p.tags || []))).sort((a, b) => a.localeCompare(b));
-
-  // Load saved draft if any
-  try {
-    const draft = JSON.parse(localStorage.getItem("post-draft"));
-    if (draft) {
-      pTitle.value = draft.title || "";
-      pText.value = draft.text || "";
-      pTags.value = draft.tags || "";
-    }
-  } catch {}
 
   titleCount.textContent = `${pTitle.value.length}/300`;
   pTitle.addEventListener("input", () => {
@@ -434,11 +423,6 @@ function openNewPost() {
   mdSwitch.addEventListener("click", () => {
     toolbar.classList.toggle("hidden");
     mdSwitch.textContent = toolbar.classList.contains("hidden") ? "Show Toolbar" : "Switch to Markdown Editor";
-  });
-
-  saveDraftBtn.addEventListener("click", () => {
-    const draft = { title: pTitle.value, text: pText.value, tags: pTags.value };
-    localStorage.setItem("post-draft", JSON.stringify(draft));
   });
 
   function splitTags(val) {
@@ -561,16 +545,11 @@ function openNewPost() {
       await r.json();
       attachedImages.forEach(ai => URL.revokeObjectURL(ai.url));
       await refreshPosts();
-      // reset form for another post
-      pTitle.value = "";
-      pText.value = "";
-      pTags.value = "";
-      pTagsSuggest.innerHTML = "";
-      pTagsSuggest.classList.remove("visible");
-      pPreviewWrap.innerHTML = "";
+      modal.classList.add("hidden");
+      modalContent.classList.remove("new-post-modal");
+      modalBody.innerHTML = "";
       attachedImages = [];
       pPreviewRow.style.display = "none";
-      localStorage.removeItem("post-draft");
     } catch (e) {
       alert("Failed: " + e.message);
     }
@@ -596,6 +575,14 @@ function openPost(post) {
   modalContent.style.width = "";
   modalContent.classList.remove("new-post-modal");
   modalBody.innerHTML = "";
+
+  const header = document.createElement("div");
+  header.className = "post-header";
+  header.innerHTML = `
+    <span class="post-author">${post.user ? post.user.name : 'Anon'}</span>
+    <span class="post-date muted">${fmtDate(post.date)}</span>
+  `;
+  modalBody.appendChild(header);
 
   if (post.type === "photo") {
     const urls = (post.urls && post.urls.length) ? post.urls : [post.url];
@@ -651,13 +638,34 @@ function openPost(post) {
     modalBody.appendChild(div);
   }
 
-  // Meta (tags + date)
   const meta = document.createElement("div");
   meta.innerHTML = `
     <div class="tags">${(post.tags || []).map(t => `<span class="tag">#${t}</span>`).join(" ")}</div>
-    <div class="muted">${fmtDate(post.date)}</div>
   `;
   modalBody.appendChild(meta);
+
+  const pActions = document.createElement("div");
+  pActions.className = "post-actions";
+  const likeBtn = document.createElement("button");
+  likeBtn.type = "button";
+  likeBtn.className = "like-btn" + (post.liked ? " liked" : "");
+  likeBtn.textContent = "❤";
+  const likeCount = document.createElement("span");
+  likeCount.className = "like-count";
+  likeCount.textContent = post.like_count || 0;
+  likeBtn.addEventListener("click", async () => {
+    try {
+      const r = await fetch(`/api/post/${post.id}/like`, { method: 'POST' });
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      likeBtn.classList.toggle('liked', data.liked);
+      likeCount.textContent = data.like_count;
+    } catch (err) {
+      alert('Failed: ' + err.message);
+    }
+  });
+  pActions.append(likeBtn, likeCount);
+  modalBody.appendChild(pActions);
 
   const commentsWrap = document.createElement("div");
   commentsWrap.className = "comments";
@@ -729,14 +737,36 @@ function openPost(post) {
       text.className = "comment-text md";
       text.innerHTML = renderMarkdown(c.text);
       body.append(meta, text);
+      const actions = document.createElement('div');
+      actions.className = 'comment-actions';
+      const like = document.createElement('button');
+      like.type = 'button';
+      like.className = 'like-btn' + (c.liked ? ' liked' : '');
+      like.textContent = '❤';
+      const count = document.createElement('span');
+      count.className = 'like-count';
+      count.textContent = c.like_count || 0;
+      like.addEventListener('click', async () => {
+        try {
+          const r = await fetch(`/api/post/${post.id}/comment/${c.id}/like`, { method: 'POST' });
+          if (!r.ok) throw new Error(await r.text());
+          const data = await r.json();
+          like.classList.toggle('liked', data.liked);
+          count.textContent = data.like_count;
+        } catch (err) {
+          alert('Failed: ' + err.message);
+        }
+      });
+      actions.append(like, count);
       if (currentUser) {
         const replyBtn = document.createElement("button");
         replyBtn.type = 'button';
         replyBtn.className = 'reply-btn';
         replyBtn.textContent = 'Reply';
         replyBtn.addEventListener('click', () => moveForm(li, c.id));
-        body.appendChild(replyBtn);
+        actions.appendChild(replyBtn);
       }
+      body.appendChild(actions);
       card.append(avatar, body);
       li.appendChild(card);
       if (c.replies && c.replies.length) {

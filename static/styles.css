@@ -479,6 +479,7 @@ body {
   position: absolute; top: 10px; right: 12px;
   background: #0c1320; color: #cfe2ff; border: 1px solid #1b2430; border-radius: 999px;
   padding: 4px 8px; cursor: pointer;
+  z-index: 3;
 }
 
 .modal__title {
@@ -650,6 +651,12 @@ textarea { min-height:90px; }
 .comment-text {
   margin-bottom: 4px;
 }
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
 .reply-btn {
   background: none;
   border: none;
@@ -657,7 +664,35 @@ textarea { min-height:90px; }
   cursor: pointer;
   padding: 0;
   font-size: 14px;
-  margin-top: 4px;
+  margin-left: 8px;
+}
+.like-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: #8899aa;
+  padding: 0;
+}
+.like-btn.liked {
+  color: #ff4d4f;
+}
+.like-count {
+  font-size: 14px;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.post-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 .comment-form {
   display: flex;

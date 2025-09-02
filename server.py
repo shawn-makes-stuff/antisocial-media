@@ -173,8 +173,10 @@ def logout():
 def api_posts():
     posts = load_posts()
     users = {u["id"]: u for u in load_users()}
+    me = current_user()
+    me_id = me.get("id") if me else None
 
-    def attach_user(comments):
+    def attach_user_and_meta(comments):
         for c in comments:
             uid = c.get("user_id")
             if uid and uid in users:
@@ -184,7 +186,11 @@ def api_posts():
                     "name": cu.get("name"),
                     "avatar": cu.get("avatar"),
                 }
-            attach_user(c.get("replies", []))
+            likes = c.setdefault("likes", [])
+            c["like_count"] = len(likes)
+            if me_id:
+                c["liked"] = me_id in likes
+            attach_user_and_meta(c.get("replies", []))
 
     def count_comments(comments):
         return sum(1 + count_comments(c.get("replies", [])) for c in comments)
@@ -194,9 +200,13 @@ def api_posts():
         if uid and uid in users:
             uu = users[uid]
             p["user"] = {"id": uid, "name": uu.get("name"), "avatar": uu.get("avatar")}
+        likes = p.setdefault("likes", [])
+        p["like_count"] = len(likes)
+        if me_id:
+            p["liked"] = me_id in likes
         comments = p.get("comments", [])
         p["comment_count"] = count_comments(comments)
-        attach_user(comments)
+        attach_user_and_meta(comments)
 
     return jsonify({"posts": posts})
 
@@ -375,6 +385,7 @@ def api_create_post():
         "type": ptype,
         "user_id": user["id"],
         "comments": [],
+        "likes": [],
     }
     if urls:
         post["urls"] = urls
@@ -436,6 +447,7 @@ def api_post_comment(pid):
                 "text": text,
                 "date": time.strftime("%Y-%m-%d"),
                 "replies": [],
+                "likes": [],
             }
             if parent_id:
                 parent = find_comment(post.setdefault("comments", []), parent_id)
@@ -447,6 +459,61 @@ def api_post_comment(pid):
             posts[i] = post
             save_posts(posts)
             return jsonify({"ok": True, "comment": comment})
+    return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/post/<pid>/like", methods=["POST"])
+def api_post_like(pid):
+    user = current_user()
+    if not user:
+        return make_response(("Unauthorized", 401))
+    posts = load_posts()
+    for i, post in enumerate(posts):
+        if post.get("id") == pid:
+            likes = post.setdefault("likes", [])
+            uid = user["id"]
+            if uid in likes:
+                likes.remove(uid)
+                liked = False
+            else:
+                likes.append(uid)
+                liked = True
+            posts[i] = post
+            save_posts(posts)
+            return jsonify({"ok": True, "liked": liked, "like_count": len(likes)})
+    return jsonify({"error": "Not found"}), 404
+
+
+@app.route("/api/post/<pid>/comment/<cid>/like", methods=["POST"])
+def api_comment_like(pid, cid):
+    user = current_user()
+    if not user:
+        return make_response(("Unauthorized", 401))
+    posts = load_posts()
+    for pi, post in enumerate(posts):
+        if post.get("id") == pid:
+            def find_comment(comments):
+                for c in comments:
+                    if c.get("id") == cid:
+                        return c
+                    found = find_comment(c.get("replies", []))
+                    if found:
+                        return found
+                return None
+            comment = find_comment(post.get("comments", []))
+            if not comment:
+                return jsonify({"error": "Not found"}), 404
+            likes = comment.setdefault("likes", [])
+            uid = user["id"]
+            if uid in likes:
+                likes.remove(uid)
+                liked = False
+            else:
+                likes.append(uid)
+                liked = True
+            posts[pi] = post
+            save_posts(posts)
+            return jsonify({"ok": True, "liked": liked, "like_count": len(likes)})
     return jsonify({"error": "Not found"}), 404
 
 # -------- Helpers --------
