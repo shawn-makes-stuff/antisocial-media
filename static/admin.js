@@ -202,7 +202,7 @@
       try{
         await del(`/api/post/${post.id}`);
         await loadPosts();
-        toast('Deleted.');
+        toast('Post deleted.');
       }catch(e){ toast('Delete failed: ' + e); }
     };
     return tr;
@@ -310,7 +310,10 @@
     }catch(e){ toast('Create failed: ' + e); }
   }
 
-  createBtn.onclick = handleCreatePost;
+  createBtn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    handleCreatePost();
+  });
 
   // ====== Loaders ======
   async function loadSite(){
